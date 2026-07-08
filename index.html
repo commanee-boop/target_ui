@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Military Target Detection System</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="เมนูหลัก">
+        <nav class="nav-list">
+          <button class="nav-item is-active" title="นำเข้าข้อมูล" aria-label="นำเข้าข้อมูล">
+            <span class="nav-number">1</span>
+            <span>นำเข้าข้อมูล</span>
+          </button>
+          <button class="nav-item" title="เลือกวัตถุ" aria-label="เลือกวัตถุ">
+            <span class="nav-number">2</span>
+            <span>เลือกวัตถุ</span>
+          </button>
+          <button class="nav-item" title="เริ่มตรวจจับ" aria-label="เริ่มตรวจจับ">
+            <span class="nav-number">3</span>
+            <span>เริ่มตรวจจับ</span>
+          </button>
+        </nav>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div class="top-brand" aria-label="ระบบตรวจจับเป้าหมายทางทหาร">
+            <img src="assets/target-command-logo.png" alt="" />
+            <div class="top-brand-copy">
+              <strong>MILITARY TARGET DETECTION SYSTEM</strong>
+              <span>ระบบตรวจจับเป้าหมายทางทหาร</span>
+            </div>
+          </div>
+          <div class="top-menu" aria-label="เมนูด้านบน">
+            <button class="top-menu-item is-active" title="ตรวจจับเป้าหมาย" aria-label="ตรวจจับเป้าหมาย">
+              <span class="icon target-menu"></span>
+              <span>ตรวจจับเป้าหมาย</span>
+            </button>
+            <button class="top-menu-item" title="รายงานบันทึกข้อมูล" aria-label="รายงานบันทึกข้อมูล">
+              <span class="icon report"></span>
+              <span>รายงานบันทึกข้อมูล</span>
+            </button>
+          </div>
+          <div class="operator-cluster">
+            <div class="clock">
+              <strong id="clock">10:15:37</strong>
+              <span>20 พ.ค. 2025</span>
+            </div>
+            <div class="status-pills" aria-label="สถานะระบบ">
+              <span></span>
+              <span></span>
+            </div>
+            <div class="operator">
+              <div class="avatar">A</div>
+              <div>
+                <strong>ผู้ดูแลระบบ</strong>
+                <span>Administrator</span>
+              </div>
+            </div>
+            <button class="logout-button" title="Logout" aria-label="Logout">
+              <span class="icon logout"></span>
+              <span>Logout</span>
+            </button>
+          </div>
+        </header>
+
+        <section class="setup-grid" aria-label="ขั้นตอนการตรวจจับ">
+          <article class="panel step-panel">
+            <div class="step-head">
+              <span class="step-number">1</span>
+              <h2>นำเข้าข้อมูล</h2>
+            </div>
+            <div class="source-tabs" role="tablist" aria-label="ชนิดข้อมูล">
+              <button class="source-tab is-active">URL / STREAM</button>
+              <button class="source-tab">วิดีโอ</button>
+              <button class="source-tab">รูปภาพ</button>
+            </div>
+            <div class="input-row">
+              <input id="streamUrl" type="url" value="https://example.com/stream" aria-label="URL stream" />
+              <button id="connectBtn" class="primary-small">เชื่อมต่อ</button>
+            </div>
+            <div class="connection-state">
+              <span></span>
+              <strong id="connectionText">เชื่อมต่อสำเร็จ</strong>
+            </div>
+          </article>
+
+          <article class="panel step-panel target-panel">
+            <div class="step-head">
+              <span class="step-number">2</span>
+              <h2>เลือกวัตถุที่ต้องการตรวจจับ</h2>
+            </div>
+            <div class="target-grid" id="targetGrid">
+              <button class="target-chip is-selected" data-type="ALL">
+                <span class="target-symbol crosshair"></span>
+                <strong>ทั้งหมด</strong>
+                <small>ALL</small>
+              </button>
+              <button class="target-chip" data-type="AMV"><span class="target-symbol vehicle"></span><strong>AMV</strong></button>
+              <button class="target-chip" data-type="LMV"><span class="target-symbol jeep"></span><strong>LMV</strong></button>
+              <button class="target-chip" data-type="AFV"><span class="target-symbol tank"></span><strong>AFV</strong></button>
+              <button class="target-chip" data-type="CV"><span class="target-symbol truck"></span><strong>CV</strong></button>
+              <button class="target-chip" data-type="MCV"><span class="target-symbol apc"></span><strong>MCV</strong></button>
+            </div>
+            <dl class="legend">
+              <div><dt>AMV</dt><dd>Armored Military Vehicle</dd></div>
+              <div><dt>LMV</dt><dd>Light Military Vehicle</dd></div>
+              <div><dt>AFV</dt><dd>Armored Fighting Vehicle</dd></div>
+              <div><dt>CV</dt><dd>Combat Vehicle</dd></div>
+              <div><dt>MCV</dt><dd>Military Cargo Vehicle</dd></div>
+            </dl>
+          </article>
+
+          <article class="panel step-panel ai-panel">
+            <div class="step-head">
+              <span class="step-number">3</span>
+              <h2>เริ่มการตรวจจับ</h2>
+            </div>
+            <div class="ai-chip">
+              <span class="processor">AI</span>
+              <span>AI พร้อมตรวจจับเป้าหมาย</span>
+            </div>
+            <button id="startBtn" class="primary-action">
+              <span class="play-icon"></span>
+              <strong>เริ่มตรวจจับ</strong>
+            </button>
+          </article>
+        </section>
+
+        <section class="content-grid">
+          <div class="left-stack">
+            <article class="panel summary-panel">
+              <div class="panel-title">
+                <h2>สรุปผลการตรวจจับ</h2>
+              </div>
+              <div class="metric-grid" id="metrics">
+                <div class="metric amv"><span>AMV</span><strong data-count="15">15</strong></div>
+                <div class="metric lmv"><span>LMV</span><strong data-count="23">23</strong></div>
+                <div class="metric afv"><span>AFV</span><strong data-count="7">7</strong></div>
+                <div class="metric cv"><span>CV</span><strong data-count="4">4</strong></div>
+                <div class="metric mcv"><span>MCV</span><strong data-count="6">6</strong></div>
+                <div class="metric total"><span>รวมทั้งหมด</span><strong id="totalCount">55</strong><small>เป้าหมาย</small></div>
+              </div>
+            </article>
+
+            <article class="panel preview-panel">
+              <div class="panel-title compact">
+                <h2>ภาพแสดงผลขนาดใหญ่ (Live)</h2>
+                <div class="preview-tools">
+                  <button title="บันทึกภาพ" aria-label="บันทึกภาพ"><span class="icon camera"></span></button>
+                  <button title="เต็มจอ" aria-label="เต็มจอ"><span class="icon expand"></span></button>
+                </div>
+              </div>
+              <div class="live-frame">
+                <img src="assets/surveillance-road.png" alt="ภาพถนนและยานพาหนะจากมุมสูงสำหรับตัวอย่างการตรวจจับ" />
+                <div class="scan-line"></div>
+                <span class="live-dot">กำลังตรวจจับ...</span>
+                <span class="box b1">AMV</span>
+                <span class="box b2">AMV</span>
+                <span class="box b3">LMV</span>
+                <span class="box b4">AFV</span>
+                <span class="box b5">AMV</span>
+              </div>
+              <div class="video-bar">
+                <button title="หยุดชั่วคราว" aria-label="หยุดชั่วคราว" class="pause-bars"></button>
+                <button title="ย้อนกลับ" aria-label="ย้อนกลับ"><span class="icon prev"></span></button>
+                <button title="เล่น" aria-label="เล่น"><span class="icon play-mini"></span></button>
+                <button title="เสียง" aria-label="เสียง"><span class="icon volume"></span></button>
+                <div class="progress"><span></span></div>
+                <time>00:01:24 / 00:10:00</time>
+                <button title="จับภาพ" aria-label="จับภาพ"><span class="icon camera"></span></button>
+                <button title="เต็มจอ" aria-label="เต็มจอ"><span class="icon expand"></span></button>
+                <button class="speed">1.0x</button>
+              </div>
+            </article>
+
+            <article class="panel timeline-panel">
+              <div class="panel-title compact">
+                <h2>ไทม์ไลน์การตรวจจับตลอดวิดีโอ</h2>
+              </div>
+              <div class="timeline">
+                <div class="timeline-track"></div>
+                <span style="left:2%" class="event amv"></span>
+                <span style="left:9%" class="event amv"></span>
+                <span style="left:14%" class="event lmv"></span>
+                <span style="left:21%" class="event mcv"></span>
+                <span style="left:31%" class="event afv"></span>
+                <span style="left:46%" class="event cv"></span>
+                <span style="left:57%" class="event amv"></span>
+                <span style="left:69%" class="event afv"></span>
+                <span style="left:82%" class="event cv"></span>
+                <span style="left:94%" class="event mcv"></span>
+              </div>
+              <div class="time-scale">
+                <span>00:00</span><span>01:00</span><span>02:00</span><span>03:00</span><span>04:00</span><span>05:00</span><span>06:00</span><span>07:00</span><span>08:00</span><span>09:00</span><span>10:00</span>
+              </div>
+              <div class="filter-row">
+                <label><input type="checkbox" checked /> ทั้งหมด</label>
+                <label><input type="checkbox" checked /> AMV</label>
+                <label><input type="checkbox" checked /> LMV</label>
+                <label><input type="checkbox" checked /> AFV</label>
+                <label><input type="checkbox" checked /> CV</label>
+                <label><input type="checkbox" checked /> MCV</label>
+              </div>
+            </article>
+          </div>
+
+          <div class="right-stack">
+            <article class="panel log-panel">
+              <div class="panel-title compact">
+                <h2>Log การทำงาน</h2>
+              </div>
+              <div class="log-table" role="table" aria-label="Log การทำงาน">
+                <div class="log-head" role="row">
+                  <span role="columnheader">เวลา (Time)</span>
+                  <span role="columnheader">ข้อความ (Message)</span>
+                </div>
+                <div id="logRows" class="log-rows"></div>
+              </div>
+            </article>
+
+            <article class="panel snapshots-panel">
+              <div class="panel-title compact">
+                <h2>ตัวอย่างภาพในช่วงเวลาที่ตรวจจับ (Snapshot Every 10s)</h2>
+              </div>
+              <div class="snapshot-strip">
+                <button title="ก่อนหน้า" aria-label="ก่อนหน้า"><span class="icon chevron-left"></span></button>
+                <div class="snapshots" id="snapshots"></div>
+                <button title="ถัดไป" aria-label="ถัดไป"><span class="icon chevron-right"></span></button>
+              </div>
+              <div class="pager"><span class="is-active"></span><span></span><span></span><span></span></div>
+            </article>
+
+            <article class="panel controls-panel">
+              <div class="panel-title compact">
+                <h2>เครื่องเล่นวิดีโอ</h2>
+              </div>
+              <div class="transport">
+                <button title="เริ่มต้น" aria-label="เริ่มต้น"><span class="icon first"></span></button>
+                <button title="ย้อนกลับ" aria-label="ย้อนกลับ"><span class="icon prev"></span></button>
+                <button id="transportPlay" class="round-play" title="เล่น" aria-label="เล่น"><span class="play-icon"></span></button>
+                <button title="ถัดไป" aria-label="ถัดไป"><span class="icon next"></span></button>
+                <button title="ท้ายสุด" aria-label="ท้ายสุด"><span class="icon last"></span></button>
+                <button class="capture"><span class="icon camera"></span> สกรีนช็อต</button>
+              </div>
+              <div class="control-progress"><span></span></div>
+              <div class="volume-row">
+                <time>00:01:24 / 00:10:00</time>
+                <span class="icon volume"></span>
+                <input type="range" min="0" max="100" value="72" aria-label="ระดับเสียง" />
+                <button title="เต็มจอ" aria-label="เต็มจอ"><span class="icon expand"></span></button>
+              </div>
+            </article>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script src="app.js"></script>
+  </body>
+</html>

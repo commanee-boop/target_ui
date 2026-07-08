@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Target command logo">
+  <defs>
+    <radialGradient id="blueCore" cx="50%" cy="42%" r="62%">
+      <stop offset="0" stop-color="#123a9f"/>
+      <stop offset="1" stop-color="#061853"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff06a"/>
+      <stop offset="0.45" stop-color="#f0b91d"/>
+      <stop offset="1" stop-color="#a96b05"/>
+    </linearGradient>
+  </defs>
+  <circle cx="128" cy="128" r="121" fill="#101820"/>
+  <circle cx="128" cy="128" r="116" fill="#b82020"/>
+  <circle cx="128" cy="128" r="96" fill="url(#blueCore)" stroke="#f3d365" stroke-width="3"/>
+  <circle cx="128" cy="128" r="42" fill="none" stroke="#e7eefb" stroke-width="3"/>
+  <path fill="url(#gold)" stroke="#8f5b08" stroke-width="1.5" d="m128 53 13.8 42.5h44.7l-36.1 26.2 13.8 42.5L128 138l-36.2 26.2 13.8-42.5-36.1-26.2h44.7z"/>
+  <path fill="url(#gold)" stroke="#8f5b08" stroke-width="2" d="M56 137c28 29 116 29 144 0-12 31-39 51-72 51s-60-20-72-51Z"/>
+  <path fill="url(#gold)" stroke="#8f5b08" stroke-width="2" d="M58 124c24 17 46 23 70 23s46-6 70-23c-14 28-39 42-70 42s-56-14-70-42Z"/>
+  <path fill="url(#gold)" stroke="#8f5b08" stroke-width="2" d="M76 105c-18 10-31 25-38 45 25-4 45-16 60-36-6-1-14-4-22-9Zm104 0c18 10 31 25 38 45-25-4-45-16-60-36 6-1 14-4 22-9Z"/>
+  <circle cx="128" cy="184" r="13" fill="url(#gold)" stroke="#8f5b08" stroke-width="2"/>
+  <g fill="#ffd93a" stroke="#8f5b08" stroke-width="1">
+    <path d="m128 13 4 8 9 1-7 6 2 9-8-5-8 5 2-9-7-6 9-1z"/>
+    <path d="m89 22 4 8 9 1-7 6 2 9-8-5-8 5 2-9-7-6 9-1z"/>
+    <path d="m167 22 4 8 9 1-7 6 2 9-8-5-8 5 2-9-7-6 9-1z"/>
+    <path d="m53 43 4 8 9 1-7 6 2 9-8-5-8 5 2-9-7-6 9-1z"/>
+    <path d="m203 43 4 8 9 1-7 6 2 9-8-5-8 5 2-9-7-6 9-1z"/>
+  </g>
+</svg>
