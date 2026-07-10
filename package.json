@@ -1,5 +1,10 @@
 {
   "scripts": {
-    "dev": "node dev-server.js"
+    "dev": "node dev-server.js",
+    "dev:vite": "vite --host 127.0.0.1",
+    "build": "vite build"
+  },
+  "devDependencies": {
+    "vite": "^5.4.19"
   }
 }
