@@ -7,8 +7,8 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div class="app-shell">
-      <aside class="sidebar" aria-label="เมนูหลัก">
+    <div id="app" class="app-shell" :class="{ 'is-sidebar-collapsed': sidebarCollapsed }" v-cloak>
+      <aside class="sidebar" :class="{ 'is-collapsed': sidebarCollapsed }" aria-label="เมนูหลัก">
         <nav class="nav-list">
           <button class="nav-item is-active" title="นำเข้าข้อมูล" aria-label="นำเข้าข้อมูล">
             <span class="nav-number">1</span>
@@ -45,9 +45,12 @@
             </button>
           </div>
           <div class="operator-cluster">
+            <button id="themeToggle" class="theme-toggle" type="button" :title="themeTitle" :aria-label="themeTitle" :aria-pressed="theme === 'light'" @click="toggleTheme">
+              <span class="theme-icon" aria-hidden="true"></span>
+            </button>
             <div class="clock">
-              <strong id="clock">10:15:37</strong>
-              <span>20 พ.ค. 2025</span>
+              <span id="clockDate">{{ clockDate }}</span>
+              <span id="clock">{{ clockTime }}</span>
             </div>
             <div class="status-pills" aria-label="สถานะระบบ">
               <span></span>
@@ -68,42 +71,82 @@
         </header>
 
         <section class="setup-grid" aria-label="ขั้นตอนการตรวจจับ">
+          <article class="sidebar-tools" aria-label="Target configuration tools">
+            <div class="tools-title">
+              <span class="tools-mark"><span class="icon sliders"></span></span>
+              <div>
+                <strong>Target Configuration</strong>
+                <span>Input and detection setup</span>
+              </div>
+            </div>
+            <div class="tools-actions">
+              <button class="tool-action clear-input" type="button" title="Clear input data" aria-label="Clear input data" @click="clearInputData">
+                <span class="tool-icon eraser"></span>
+              </button>
+              <button class="tool-action reset-page" type="button" title="Reset all data" aria-label="Reset all data" @click="resetPageData">
+                <span class="tool-icon refresh"></span>
+              </button>
+              <button class="tool-action collapse-menu" :class="{ 'is-collapsed': sidebarCollapsed }" type="button" :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'" :aria-label="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'" @click.prevent.stop="toggleSidebar">
+                <span class="tool-icon chevron"></span>
+              </button>
+            </div>
+          </article>
+
           <article class="panel step-panel">
             <div class="step-head">
-              <span class="step-number">1</span>
-              <h2>นำเข้าข้อมูล</h2>
+              <span class="step-number step-source" aria-hidden="true"></span>
+              <h2>Input Source</h2>
             </div>
-            <div class="source-tabs" role="tablist" aria-label="ชนิดข้อมูล">
-              <button class="source-tab is-active">URL / STREAM</button>
-              <button class="source-tab">วิดีโอ</button>
-              <button class="source-tab">รูปภาพ</button>
+            <div class="source-tabs" role="tablist" aria-label="Input source type">
+              <button class="source-tab" :class="{ 'is-active': inputMode === 'url' }" @click="setInputMode('url')">URL / STREAM</button>
+              <button class="source-tab" :class="{ 'is-active': inputMode === 'file' }" @click="setInputMode('file')">VIDEO / PICTURE</button>
             </div>
-            <div class="input-row">
-              <input id="streamUrl" type="url" value="https://example.com/stream" aria-label="URL stream" />
-              <button id="connectBtn" class="primary-small">เชื่อมต่อ</button>
+            <div v-if="inputMode === 'url'" class="source-list">
+              <div v-for="(slot, index) in sourceSlots" :key="slot.id" class="source-slot">
+                <span class="source-index">CAM {{ index + 1 }}</span>
+                <input v-model="slot.url" type="url" :aria-label="`URL stream ${index + 1}`" placeholder="rtsp:// or https:// stream" />
+                <button class="source-remove" type="button" title="Remove source" aria-label="Remove source" :disabled="sourceSlots.length === 1" @click="removeSourceSlot(slot)">×</button>
+              </div>
+              <div class="source-actions-row">
+                <button class="secondary-small" type="button" :disabled="sourceSlots.length >= 4" @click="addSourceSlot">Add source</button>
+                <button id="connectBtn" class="primary-small" @click="connectStream">{{ connectLabel }}</button>
+              </div>
             </div>
-            <div class="connection-state">
+            <div v-else class="source-list">
+              <div v-for="(slot, index) in sourceSlots" :key="slot.id" class="source-slot file-source">
+                <span class="source-index">CAM {{ index + 1 }}</span>
+                <label class="file-button-inline">
+                  <input class="hidden-file" type="file" :accept="fileAccept" @change="handleFileSelect($event, slot)" />
+                  <span>{{ slot.fileName || 'Choose Video / Picture' }}</span>
+                </label>
+                <button class="source-remove" type="button" title="Remove source" aria-label="Remove source" :disabled="sourceSlots.length === 1" @click="removeSourceSlot(slot)">×</button>
+              </div>
+              <div class="source-actions-row">
+                <button class="secondary-small" type="button" :disabled="sourceSlots.length >= 4" @click="addSourceSlot">Add source</button>
+                <button class="primary-small" @click="connectStream">{{ connectLabel }}</button>
+              </div>
+            </div>
+            <div class="connection-state" :class="sourceStatusClass">
               <span></span>
-              <strong id="connectionText">เชื่อมต่อสำเร็จ</strong>
+              <strong id="connectionText">{{ sourceStatus }}</strong>
             </div>
           </article>
 
           <article class="panel step-panel target-panel">
             <div class="step-head">
-              <span class="step-number">2</span>
-              <h2>เลือกวัตถุที่ต้องการตรวจจับ</h2>
+              <span class="step-number step-target" aria-hidden="true"></span>
+              <h2>Target Selection</h2>
             </div>
             <div class="target-grid" id="targetGrid">
-              <button class="target-chip is-selected" data-type="ALL">
+              <button class="target-chip" :class="{ 'is-selected': isTargetSelected('ALL') }" data-type="ALL" title="All targets" aria-label="All targets" @click="selectTarget('ALL')">
                 <span class="target-symbol crosshair"></span>
-                <strong>ทั้งหมด</strong>
-                <small>ALL</small>
+                <strong>ALL</strong>
               </button>
-              <button class="target-chip" data-type="AMV"><span class="target-symbol vehicle"></span><strong>AMV</strong></button>
-              <button class="target-chip" data-type="LMV"><span class="target-symbol jeep"></span><strong>LMV</strong></button>
-              <button class="target-chip" data-type="AFV"><span class="target-symbol tank"></span><strong>AFV</strong></button>
-              <button class="target-chip" data-type="CV"><span class="target-symbol truck"></span><strong>CV</strong></button>
-              <button class="target-chip" data-type="MCV"><span class="target-symbol apc"></span><strong>MCV</strong></button>
+              <button class="target-chip" :class="{ 'is-selected': isTargetSelected('AMV') }" data-type="AMV" title="Armored Military Vehicle" aria-label="Armored Military Vehicle" @click="selectTarget('AMV')"><span class="target-symbol vehicle"></span><strong>AMV</strong></button>
+              <button class="target-chip" :class="{ 'is-selected': isTargetSelected('LMV') }" data-type="LMV" title="Light Military Vehicle" aria-label="Light Military Vehicle" @click="selectTarget('LMV')"><span class="target-symbol jeep"></span><strong>LMV</strong></button>
+              <button class="target-chip" :class="{ 'is-selected': isTargetSelected('AFV') }" data-type="AFV" title="Armored Fighting Vehicle" aria-label="Armored Fighting Vehicle" @click="selectTarget('AFV')"><span class="target-symbol tank"></span><strong>AFV</strong></button>
+              <button class="target-chip" :class="{ 'is-selected': isTargetSelected('CV') }" data-type="CV" title="Combat Vehicle" aria-label="Combat Vehicle" @click="selectTarget('CV')"><span class="target-symbol truck"></span><strong>CV</strong></button>
+              <button class="target-chip" :class="{ 'is-selected': isTargetSelected('MCV') }" data-type="MCV" title="Military Cargo Vehicle" aria-label="Military Cargo Vehicle" @click="selectTarget('MCV')"><span class="target-symbol apc"></span><strong>MCV</strong></button>
             </div>
             <dl class="legend">
               <div><dt>AMV</dt><dd>Armored Military Vehicle</dd></div>
@@ -114,18 +157,29 @@
             </dl>
           </article>
 
-          <article class="panel step-panel ai-panel">
+          <article class="panel step-panel model-panel">
             <div class="step-head">
-              <span class="step-number">3</span>
-              <h2>เริ่มการตรวจจับ</h2>
+              <span class="step-number step-model" aria-hidden="true"></span>
+              <h2>Detection Model</h2>
             </div>
-            <div class="ai-chip">
+            <label class="model-select">
+              <span>Model</span>
+              <select v-model="selectedModel" aria-label="Detection model">
+                <option v-for="model in detectionModels" :key="model.id" :value="model.id">
+                  {{ model.name }}
+                </option>
+              </select>
+            </label>
+            <div class="model-summary">
               <span class="processor">AI</span>
-              <span>AI พร้อมตรวจจับเป้าหมาย</span>
+              <div>
+                <strong>{{ selectedModelName }}</strong>
+                <span>{{ detectionModels.find((model) => model.id === selectedModel)?.detail }}</span>
+              </div>
             </div>
-            <button id="startBtn" class="primary-action">
+            <button id="startBtn" class="primary-action" :class="{ 'is-running': running }" @click="toggleRunning">
               <span class="play-icon"></span>
-              <strong>เริ่มตรวจจับ</strong>
+              <strong>{{ running ? 'Detecting...' : 'Start Detection' }}</strong>
             </button>
           </article>
         </section>
@@ -137,12 +191,12 @@
                 <h2>สรุปผลการตรวจจับ</h2>
               </div>
               <div class="metric-grid" id="metrics">
-                <div class="metric amv"><span>AMV</span><strong data-count="15">15</strong></div>
-                <div class="metric lmv"><span>LMV</span><strong data-count="23">23</strong></div>
-                <div class="metric afv"><span>AFV</span><strong data-count="7">7</strong></div>
-                <div class="metric cv"><span>CV</span><strong data-count="4">4</strong></div>
-                <div class="metric mcv"><span>MCV</span><strong data-count="6">6</strong></div>
-                <div class="metric total"><span>รวมทั้งหมด</span><strong id="totalCount">55</strong><small>เป้าหมาย</small></div>
+                <div class="metric amv"><span>AMV</span><strong>{{ metrics.AMV }}</strong></div>
+                <div class="metric lmv"><span>LMV</span><strong>{{ metrics.LMV }}</strong></div>
+                <div class="metric afv"><span>AFV</span><strong>{{ metrics.AFV }}</strong></div>
+                <div class="metric cv"><span>CV</span><strong>{{ metrics.CV }}</strong></div>
+                <div class="metric mcv"><span>MCV</span><strong>{{ metrics.MCV }}</strong></div>
+                <div class="metric total"><span>รวมทั้งหมด</span><strong id="totalCount">{{ totalCount }}</strong><small>เป้าหมาย</small></div>
               </div>
             </article>
 
@@ -151,10 +205,19 @@
                 <h2>ภาพแสดงผลขนาดใหญ่ (Live)</h2>
                 <div class="preview-tools">
                   <button title="บันทึกภาพ" aria-label="บันทึกภาพ"><span class="icon camera"></span></button>
-                  <button title="เต็มจอ" aria-label="เต็มจอ"><span class="icon expand"></span></button>
+                  <button type="button" :title="fullscreenActive ? 'Exit fullscreen' : 'Fullscreen'" :aria-label="fullscreenActive ? 'Exit fullscreen' : 'Fullscreen'" @click="toggleFullscreen"><span class="icon expand" :class="{ 'is-active': fullscreenActive }"></span></button>
                 </div>
               </div>
-              <div class="live-frame">
+              <div ref="liveFrame" class="live-frame" :class="[`source-count-${previewSourceCount}`, { 'has-sources': activeSources.length, 'is-fullscreen': fullscreenActive }]">
+                <div v-for="source in activeSources" :key="source.id" class="feed-tile">
+                  <video v-if="source.mediaKind.startsWith('video') || source.mediaKind === 'stream'" :src="source.src" muted loop playsinline controls></video>
+                  <img v-else :src="source.src || 'assets/surveillance-road.png'" :alt="source.label" />
+                  <div class="scan-line"></div>
+                  <span class="live-dot">{{ source.cameraLabel }}</span>
+                  <span class="feed-name">{{ source.label }}</span>
+                  <span class="box b1">AMV</span>
+                  <span class="box b3">LMV</span>
+                </div>
                 <img src="assets/surveillance-road.png" alt="ภาพถนนและยานพาหนะจากมุมสูงสำหรับตัวอย่างการตรวจจับ" />
                 <div class="scan-line"></div>
                 <span class="live-dot">กำลังตรวจจับ...</span>
@@ -163,16 +226,23 @@
                 <span class="box b3">LMV</span>
                 <span class="box b4">AFV</span>
                 <span class="box b5">AMV</span>
+                <div class="live-frame-tools">
+                  <button type="button" title="จับภาพ" aria-label="จับภาพ"><span class="icon camera"></span></button>
+                  <button type="button" title="ย่อภาพ" aria-label="ย่อภาพ" @click.stop="toggleFullscreen"><span class="icon shrink"></span></button>
+                </div>
               </div>
               <div class="video-bar">
                 <button title="หยุดชั่วคราว" aria-label="หยุดชั่วคราว" class="pause-bars"></button>
                 <button title="ย้อนกลับ" aria-label="ย้อนกลับ"><span class="icon prev"></span></button>
                 <button title="เล่น" aria-label="เล่น"><span class="icon play-mini"></span></button>
                 <button title="เสียง" aria-label="เสียง"><span class="icon volume"></span></button>
+                <button title="ถัดไป" aria-label="ถัดไป"><span class="control-icon next-control"></span></button>
+                <button title="หยุด" aria-label="หยุด"><span class="control-icon stop-icon"></span></button>
+                <button title="เริ่มต้นใหม่" aria-label="เริ่มต้นใหม่"><span class="control-icon restart-icon"></span></button>
                 <div class="progress"><span></span></div>
                 <time>00:01:24 / 00:10:00</time>
                 <button title="จับภาพ" aria-label="จับภาพ"><span class="icon camera"></span></button>
-                <button title="เต็มจอ" aria-label="เต็มจอ"><span class="icon expand"></span></button>
+                <button type="button" :title="fullscreenActive ? 'Exit fullscreen' : 'Fullscreen'" :aria-label="fullscreenActive ? 'Exit fullscreen' : 'Fullscreen'" @click="toggleFullscreen"><span class="icon expand" :class="{ 'is-active': fullscreenActive }"></span></button>
                 <button class="speed">1.0x</button>
               </div>
             </article>
@@ -181,21 +251,20 @@
               <div class="panel-title compact">
                 <h2>ไทม์ไลน์การตรวจจับตลอดวิดีโอ</h2>
               </div>
-              <div class="timeline">
-                <div class="timeline-track"></div>
-                <span style="left:2%" class="event amv"></span>
-                <span style="left:9%" class="event amv"></span>
-                <span style="left:14%" class="event lmv"></span>
-                <span style="left:21%" class="event mcv"></span>
-                <span style="left:31%" class="event afv"></span>
-                <span style="left:46%" class="event cv"></span>
-                <span style="left:57%" class="event amv"></span>
-                <span style="left:69%" class="event afv"></span>
-                <span style="left:82%" class="event cv"></span>
-                <span style="left:94%" class="event mcv"></span>
-              </div>
-              <div class="time-scale">
-                <span>00:00</span><span>01:00</span><span>02:00</span><span>03:00</span><span>04:00</span><span>05:00</span><span>06:00</span><span>07:00</span><span>08:00</span><span>09:00</span><span>10:00</span>
+              <div class="source-lanes timeline-lanes">
+                <div v-for="source in monitoringSources" :key="`timeline-${source.id}`" class="source-lane">
+                  <div class="lane-head">
+                    <strong>{{ source.cameraLabel }}</strong>
+                    <span>{{ source.label }}</span>
+                  </div>
+                  <div class="timeline">
+                    <div class="timeline-track"></div>
+                    <button v-for="event in timelineEvents" :key="`${source.id}-${event.time}-${event.type}`" type="button" class="event" :class="event.className" :style="{ left: `${event.left}%` }" @click="openTimelinePopup(event, source)" :aria-label="`Open ${event.type} detection at ${event.time}`"></button>
+                  </div>
+                  <div class="time-scale">
+                    <span>00:00</span><span>02:00</span><span>04:00</span><span>06:00</span><span>08:00</span><span>10:00</span>
+                  </div>
+                </div>
               </div>
               <div class="filter-row">
                 <label><input type="checkbox" checked /> ทั้งหมด</label>
@@ -218,7 +287,18 @@
                   <span role="columnheader">เวลา (Time)</span>
                   <span role="columnheader">ข้อความ (Message)</span>
                 </div>
-                <div id="logRows" class="log-rows"></div>
+                <div id="logRows" class="log-rows source-lanes log-lanes">
+                  <div v-for="group in sourceLogs" :key="`log-${group.source.id}`" class="source-lane log-lane">
+                    <div class="lane-head">
+                      <strong>{{ group.source.cameraLabel }}</strong>
+                      <span>{{ group.source.label }}</span>
+                    </div>
+                    <div v-for="row in group.logs" :key="`${group.source.id}-${row.id}`" class="log-row" role="row">
+                      <span role="cell">{{ row.time }}</span>
+                      <span role="cell" v-html="row.message"></span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </article>
 
@@ -228,36 +308,47 @@
               </div>
               <div class="snapshot-strip">
                 <button title="ก่อนหน้า" aria-label="ก่อนหน้า"><span class="icon chevron-left"></span></button>
-                <div class="snapshots" id="snapshots"></div>
+                <div class="snapshots source-lanes snapshot-lanes" id="snapshots">
+                  <div v-for="group in sourceSnapshots" :key="`snapshot-${group.source.id}`" class="source-lane snapshot-lane">
+                    <div class="lane-head">
+                      <strong>{{ group.source.cameraLabel }}</strong>
+                      <span>{{ group.source.label }}</span>
+                    </div>
+                    <div class="snapshot-row">
+                      <button v-for="snapshot in group.snapshots" :key="`${group.source.id}-${snapshot.time}`" type="button" class="snapshot" @click="openSnapshotPopup(snapshot, group.source)" :aria-label="`Open ${snapshot.type} snapshot ${snapshot.time}`">
+                        <img src="assets/surveillance-road.png" :alt="`Snapshot ${snapshot.type}`" />
+                        <span>{{ snapshot.type }}</span>
+                        <time>{{ snapshot.time }}</time>
+                      </button>
+                    </div>
+                  </div>
+                </div>
                 <button title="ถัดไป" aria-label="ถัดไป"><span class="icon chevron-right"></span></button>
               </div>
               <div class="pager"><span class="is-active"></span><span></span><span></span><span></span></div>
             </article>
 
-            <article class="panel controls-panel">
-              <div class="panel-title compact">
-                <h2>เครื่องเล่นวิดีโอ</h2>
-              </div>
-              <div class="transport">
-                <button title="เริ่มต้น" aria-label="เริ่มต้น"><span class="icon first"></span></button>
-                <button title="ย้อนกลับ" aria-label="ย้อนกลับ"><span class="icon prev"></span></button>
-                <button id="transportPlay" class="round-play" title="เล่น" aria-label="เล่น"><span class="play-icon"></span></button>
-                <button title="ถัดไป" aria-label="ถัดไป"><span class="icon next"></span></button>
-                <button title="ท้ายสุด" aria-label="ท้ายสุด"><span class="icon last"></span></button>
-                <button class="capture"><span class="icon camera"></span> สกรีนช็อต</button>
-              </div>
-              <div class="control-progress"><span></span></div>
-              <div class="volume-row">
-                <time>00:01:24 / 00:10:00</time>
-                <span class="icon volume"></span>
-                <input type="range" min="0" max="100" value="72" aria-label="ระดับเสียง" />
-                <button title="เต็มจอ" aria-label="เต็มจอ"><span class="icon expand"></span></button>
-              </div>
-            </article>
           </div>
         </section>
       </main>
+      <div v-if="selectedSnapshot" class="snapshot-modal" role="dialog" aria-modal="true" @click.self="closeSnapshotPopup">
+        <div class="snapshot-modal-panel">
+          <button type="button" class="snapshot-modal-close" aria-label="Close snapshot popup" @click="closeSnapshotPopup">×</button>
+          <div class="snapshot-modal-head">
+            <strong>{{ selectedSnapshot.source.cameraLabel }} / {{ selectedSnapshot.type }}</strong>
+            <span>{{ selectedSnapshot.time }} · {{ selectedSnapshot.source.label }}</span>
+          </div>
+          <div class="snapshot-modal-image">
+            <img src="assets/surveillance-road.png" :alt="`${selectedSnapshot.type} detection enlarged`" />
+            <span class="snapshot-detection-box" :class="selectedSnapshot.boxClass">
+              <strong>{{ selectedSnapshot.type }}</strong>
+              <small>Confidence 0.92</small>
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
