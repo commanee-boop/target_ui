@@ -96,6 +96,21 @@ createApp({
         ? this.activeSources
         : [{ id: "default-source", label: "Preview source", cameraLabel: "CAM 1" }];
     },
+    sourceMetrics() {
+      return this.monitoringSources.map((source, index) => {
+        const scale = index + 1;
+        const metrics = {
+          AMV: this.metrics.AMV + index * 2,
+          LMV: Math.max(0, this.metrics.LMV - scale),
+          AFV: this.metrics.AFV + index,
+          CV: this.metrics.CV + (index % 2),
+          MCV: this.metrics.MCV + index
+        };
+        const total = Object.values(metrics).reduce((sum, value) => sum + value, 0);
+
+        return { source, metrics, total };
+      });
+    },
     sourceSnapshots() {
       return this.monitoringSources.map((source) => ({
         source,

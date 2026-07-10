@@ -1635,11 +1635,24 @@ h2 {
   padding-bottom: 0.35rem;
 }
 
+.summary-lanes {
+  grid-auto-columns: minmax(40rem, 1fr);
+  padding-bottom: 0.5rem;
+}
+
+.summary-lane .metric-grid {
+  padding: 0;
+}
+
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 0.35rem;
   padding: 0.5rem 0.75rem 0.2rem;
+}
+
+.metric-grid.legacy-metric-grid {
+  display: none;
 }
 
 .metric {
@@ -2945,6 +2958,10 @@ button.snapshot {
     grid-template-columns: none;
     grid-auto-flow: column;
     grid-auto-columns: minmax(18rem, 85vw);
+  }
+
+  .summary-lanes {
+    grid-auto-columns: minmax(28rem, 92vw);
   }
 
   .snapshot-row {

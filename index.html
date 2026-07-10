@@ -190,7 +190,23 @@
               <div class="panel-title">
                 <h2>สรุปผลการตรวจจับ</h2>
               </div>
-              <div class="metric-grid" id="metrics">
+              <div class="summary-lanes source-lanes" id="metrics">
+                <div v-for="group in sourceMetrics" :key="`summary-${group.source.id}`" class="source-lane summary-lane">
+                  <div class="lane-head">
+                    <strong>{{ group.source.cameraLabel }}</strong>
+                    <span>{{ group.source.label }}</span>
+                  </div>
+                  <div class="metric-grid">
+                    <div class="metric amv"><span>AMV</span><strong>{{ group.metrics.AMV }}</strong></div>
+                    <div class="metric lmv"><span>LMV</span><strong>{{ group.metrics.LMV }}</strong></div>
+                    <div class="metric afv"><span>AFV</span><strong>{{ group.metrics.AFV }}</strong></div>
+                    <div class="metric cv"><span>CV</span><strong>{{ group.metrics.CV }}</strong></div>
+                    <div class="metric mcv"><span>MCV</span><strong>{{ group.metrics.MCV }}</strong></div>
+                    <div class="metric total"><span>Total</span><strong>{{ group.total }}</strong><small>Targets</small></div>
+                  </div>
+                </div>
+              </div>
+              <div class="metric-grid legacy-metric-grid">
                 <div class="metric amv"><span>AMV</span><strong>{{ metrics.AMV }}</strong></div>
                 <div class="metric lmv"><span>LMV</span><strong>{{ metrics.LMV }}</strong></div>
                 <div class="metric afv"><span>AFV</span><strong>{{ metrics.AFV }}</strong></div>
