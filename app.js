@@ -5,6 +5,7 @@ createApp({
     return {
       clockTime: "10:15:37",
       clockDate: "08/07/69",
+      currentView: "detect",
       theme: "dark",
       running: false,
       fullscreenActive: false,
@@ -17,10 +18,18 @@ createApp({
       nextSourceId: 2,
       selectedTargets: [],
       selectedModel: "yolo-25",
+      selectedReportId: 1,
+      reportPageSize: 10,
       selectedFileName: "",
       connectLabel: "Connect",
       connectionText: "Stream disconnected",
       selectedSnapshot: null,
+      saveDialog: {
+        open: false,
+        confirm: false,
+        source: null,
+        fileName: ""
+      },
       logIndex: 0,
       timer: null,
       clockTimer: null,
@@ -53,6 +62,117 @@ createApp({
         { id: "yolo-v8", name: "YOLO v8", detail: "General purpose detection" },
         { id: "faster-rcnn", name: "Faster R-CNN", detail: "High precision detection" }
       ],
+      reportRecords: [
+        {
+          id: 1,
+          name: "convoy_2025_05_20_01",
+          source: "https://stream.example.com/convoy1",
+          ext: "MP4",
+          kind: "video",
+          duration: "00:02:15",
+          date: "20 พ.ค. 2025",
+          time: "10:15:30",
+          size: "1.24 GB",
+          resolution: "1920 x 1080",
+          fps: "25",
+          recorder: "admin",
+          tags: ["AMV", "LMV"],
+          metrics: { AMV: 18, LMV: 32, AFV: 5, CV: 2, MCV: 0 },
+          image: "assets/surveillance-road.png"
+        },
+        {
+          id: 2,
+          name: "border_area_night",
+          source: "https://stream.example.com/night",
+          ext: "MP4",
+          kind: "video",
+          duration: "00:01:45",
+          date: "20 พ.ค. 2025",
+          time: "02:45:10",
+          size: "856 MB",
+          resolution: "1920 x 1080",
+          fps: "25",
+          recorder: "admin",
+          tags: ["AMV", "AFV", "CV"],
+          metrics: { AMV: 6, LMV: 0, AFV: 3, CV: 1, MCV: 0 },
+          image: "assets/surveillance-road.png"
+        },
+        {
+          id: 3,
+          name: "checkpoint_photo_01",
+          source: "อัปโหลดโดย admin",
+          ext: "JPG",
+          kind: "image",
+          duration: "ภาพนิ่ง",
+          date: "19 พ.ค. 2025",
+          time: "16:20:05",
+          size: "2.45 MB",
+          resolution: "2560 x 1440",
+          fps: "-",
+          recorder: "admin",
+          tags: ["AMV", "LMV"],
+          metrics: { AMV: 4, LMV: 7, AFV: 0, CV: 0, MCV: 0 },
+          image: "assets/surveillance-road.png"
+        },
+        {
+          id: 4,
+          name: "military_base_overview",
+          source: "อัปโหลดโดย user02",
+          ext: "MP4",
+          kind: "video",
+          duration: "00:03:05",
+          date: "19 พ.ค. 2025",
+          time: "09:10:22",
+          size: "2.11 GB",
+          resolution: "1920 x 1080",
+          fps: "25",
+          recorder: "user02",
+          tags: ["AFV", "CV", "MCV"],
+          metrics: { AMV: 0, LMV: 0, AFV: 12, CV: 3, MCV: 8 },
+          image: "assets/surveillance-road.png"
+        },
+        {
+          id: 5,
+          name: "vehicle_column_03",
+          source: "อัปโหลดโดย admin",
+          ext: "PNG",
+          kind: "image",
+          duration: "ภาพนิ่ง",
+          date: "18 พ.ค. 2025",
+          time: "14:33:18",
+          size: "3.12 MB",
+          resolution: "3840 x 2160",
+          fps: "-",
+          recorder: "admin",
+          tags: ["AMV", "LMV", "MCV"],
+          metrics: { AMV: 9, LMV: 14, AFV: 0, CV: 0, MCV: 3 },
+          image: "assets/surveillance-road.png"
+        },
+        {
+          id: 6,
+          name: "desert_patrol_01",
+          source: "https://stream.example.com/desert",
+          ext: "MP4",
+          kind: "video",
+          duration: "00:01:30",
+          date: "18 พ.ค. 2025",
+          time: "11:05:44",
+          size: "678 MB",
+          resolution: "1280 x 720",
+          fps: "30",
+          recorder: "admin",
+          tags: ["LMV"],
+          metrics: { AMV: 0, LMV: 11, AFV: 0, CV: 0, MCV: 0 },
+          image: "assets/surveillance-road.png"
+        }
+      ],
+      reportStats: {
+        files: "236",
+        videos: "98",
+        images: "138",
+        detections: "12,845",
+        storage: "128.7 GB"
+      },
       snapshots: ["AMV", "LMV", "AFV", "AMV", "CV", "MCV"].map((type, index) => ({
         type,
         time: `00:00:${String(index * 10).padStart(2, "0")}`
@@ -149,11 +269,49 @@ createApp({
     allTargetsSelected() {
       return this.targetTypes.every((type) => this.selectedTargets.includes(type));
     },
+    canSaveData() {
+      return Boolean(this.activeSources.length && this.selectedTargets.length && this.selectedModel && this.running);
+    },
+    saveDisabledReason() {
+      if (!this.activeSources.length) return "Input source required";
+      if (!this.selectedTargets.length) return "Target selection required";
+      if (!this.selectedModel) return "Detection model required";
+      if (!this.running) return "Start detection before saving";
+      return "Save detection data";
+    },
     visibleLogs() {
       return this.logs.slice(0, 9);
+    },
+    normalizedReportPageSize() {
+      const pageSize = Number(this.reportPageSize);
+      return Number.isFinite(pageSize) ? Math.max(10, Math.floor(pageSize)) : 10;
+    },
+    visibleReportRecords() {
+      const visibleCount = Math.min(this.normalizedReportPageSize, 236);
+
+      return Array.from({ length: visibleCount }, (_, index) => {
+        const baseRecord = this.reportRecords[index % this.reportRecords.length];
+        const pageNumber = Math.floor(index / this.reportRecords.length);
+        return {
+          ...baseRecord,
+          displayId: `${baseRecord.id}-${index}`,
+          displayIndex: index + 1,
+          name: pageNumber ? `${baseRecord.name}_${String(pageNumber + 1).padStart(2, "0")}` : baseRecord.name
+        };
+      });
+    },
+    selectedReport() {
+      return this.reportRecords.find((record) => record.id === this.selectedReportId) || this.reportRecords[0];
+    },
+    selectedReportTotal() {
+      return Object.values(this.selectedReport.metrics).reduce((sum, value) => sum + value, 0);
     }
   },
   watch: {
+    currentView(nextView) {
+      document.body.classList.toggle("report-view", nextView === "report");
+      this.$nextTick(this.syncViewLayout);
+    },
     theme(nextTheme) {
       document.body.classList.toggle("theme-light", nextTheme === "light");
       localStorage.setItem("target-ui-theme", nextTheme);
@@ -166,6 +324,8 @@ createApp({
     this.clockTimer = window.setInterval(this.updateClock, 1000);
     document.addEventListener("fullscreenchange", this.handleFullscreenChange);
     document.body.classList.toggle("theme-light", this.theme === "light");
+    document.body.classList.toggle("report-view", this.currentView === "report");
+    this.$nextTick(this.syncViewLayout);
   },
   beforeUnmount() {
     window.clearInterval(this.timer);
@@ -176,6 +336,84 @@ createApp({
     });
   },
   methods: {
+    setView(view) {
+      this.currentView = view;
+      document.body.classList.toggle("report-view", view === "report");
+      this.$nextTick(this.syncViewLayout);
+    },
+    syncViewLayout() {
+      const appShell = document.querySelector(".app-shell");
+      const sidebar = document.querySelector(".sidebar");
+      const workspace = document.querySelector(".workspace");
+      const reportPage = document.querySelector(".report-page");
+      const isReport = this.currentView === "report";
+
+      if (!appShell || !workspace) return;
+
+      document.body.classList.toggle("report-view", isReport);
+      appShell.classList.toggle("is-report-view", isReport);
+
+      if (isReport) {
+        appShell.style.display = "block";
+        appShell.style.gridTemplateColumns = "1fr";
+        appShell.style.width = "100vw";
+        appShell.style.maxWidth = "none";
+        appShell.style.margin = "0";
+        appShell.style.padding = "0";
+
+        if (sidebar) {
+          sidebar.style.display = "none";
+          sidebar.style.width = "0";
+          sidebar.style.minWidth = "0";
+        }
+
+        workspace.style.display = "block";
+        workspace.style.gridColumn = "1 / -1";
+        workspace.style.width = "100vw";
+        workspace.style.maxWidth = "none";
+        workspace.style.margin = "0";
+        workspace.style.padding = "1rem 1rem 1.35rem";
+        workspace.style.transform = "none";
+
+        if (reportPage) {
+          reportPage.style.display = "grid";
+          reportPage.style.width = "100%";
+          reportPage.style.maxWidth = "none";
+          reportPage.style.margin = "0";
+          reportPage.style.padding = "0";
+        }
+        return;
+      }
+
+      appShell.style.display = "";
+      appShell.style.gridTemplateColumns = "";
+      appShell.style.width = "";
+      appShell.style.maxWidth = "";
+      appShell.style.margin = "";
+      appShell.style.padding = "";
+
+      if (sidebar) {
+        sidebar.style.display = "";
+        sidebar.style.width = "";
+        sidebar.style.minWidth = "";
+      }
+
+      workspace.style.display = "";
+      workspace.style.gridColumn = "";
+      workspace.style.width = "";
+      workspace.style.maxWidth = "";
+      workspace.style.margin = "";
+      workspace.style.padding = "";
+      workspace.style.transform = "";
+
+      if (reportPage) {
+        reportPage.style.display = "none";
+        reportPage.style.width = "";
+        reportPage.style.maxWidth = "";
+        reportPage.style.margin = "";
+        reportPage.style.padding = "";
+      }
+    },
     moveSetupPanelToSidebar() {
       const appShell = document.querySelector(".app-shell");
       const sidebar = document.querySelector(".sidebar");
@@ -344,6 +582,117 @@ createApp({
     },
     closeSnapshotPopup() {
       this.selectedSnapshot = null;
+    },
+    openSaveDialog(source) {
+      if (!this.canSaveData) return;
+
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+      this.saveDialog = {
+        open: true,
+        confirm: false,
+        source,
+        fileName: `${source.cameraLabel.toLowerCase().replace(/\s+/g, "-")}_${timestamp}`
+      };
+    },
+    closeSaveDialog() {
+      this.saveDialog = {
+        open: false,
+        confirm: false,
+        source: null,
+        fileName: ""
+      };
+    },
+    requestSaveConfirm() {
+      if (!this.saveDialog.fileName.trim()) return;
+      this.saveDialog.confirm = true;
+    },
+    cancelSaveConfirm() {
+      this.saveDialog.confirm = false;
+    },
+    confirmSaveData() {
+      const source = this.saveDialog.source;
+      const fileName = this.saveDialog.fileName.trim();
+      if (!this.canSaveData || !source || !fileName) return;
+
+      const time = new Date().toLocaleTimeString("th-TH-u-nu-latn", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false
+      });
+      const date = new Date().toLocaleDateString("th-TH-u-nu-latn", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+      });
+      const metrics = this.buildSavedMetrics(source);
+      const reportRecord = {
+        id: Date.now(),
+        name: fileName.replace(/\.[^.]+$/, ""),
+        source: source.label || source.src || source.cameraLabel,
+        ...this.getSavedFileMeta(source, fileName),
+        date,
+        time,
+        resolution: "1920 x 1080",
+        fps: source.mediaKind?.startsWith("image") ? "-" : "25",
+        recorder: "admin",
+        tags: [...this.selectedTargets],
+        metrics,
+        image: "assets/surveillance-road.png",
+        model: this.selectedModelName
+      };
+
+      this.reportRecords.unshift(reportRecord);
+      this.selectedReportId = reportRecord.id;
+      this.updateReportStats(reportRecord);
+
+      this.logs.unshift({
+        id: Date.now(),
+        time,
+        message: `บันทึกข้อมูล ${source?.cameraLabel || "CAM"} เป็นไฟล์ <strong>${fileName}</strong>`
+      });
+      this.closeSaveDialog();
+    },
+    buildSavedMetrics(source) {
+      const sourceIndex = Math.max(0, this.monitoringSources.findIndex((item) => item.id === source.id));
+      const summary = this.sourceMetrics[sourceIndex]?.metrics || this.metrics;
+
+      return this.targetTypes.reduce((savedMetrics, type) => {
+        savedMetrics[type] = this.selectedTargets.includes(type) ? summary[type] : 0;
+        return savedMetrics;
+      }, {});
+    },
+    getSavedFileMeta(source, fileName) {
+      const sourceText = `${fileName} ${source.label || ""}`.toLowerCase();
+      const isImage = source.mediaKind?.startsWith("image") || /\.(jpg|jpeg|png|webp)(?:\s|$)/i.test(sourceText);
+      const extMatch = sourceText.match(/\.([a-z0-9]+)(?:\s|$)/i);
+      const ext = extMatch ? extMatch[1].toUpperCase() : (isImage ? "JPG" : "MP4");
+
+      return {
+        ext,
+        kind: isImage ? "image" : "video",
+        duration: isImage ? "ภาพนิ่ง" : "00:02:15",
+        size: isImage ? "2.45 MB" : "1.24 GB"
+      };
+    },
+    updateReportStats(record) {
+      const toNumber = (value) => Number(String(value).replace(/,/g, "")) || 0;
+      const savedDetections = Object.values(record.metrics).reduce((sum, value) => sum + value, 0);
+
+      this.reportStats.files = String(toNumber(this.reportStats.files) + 1);
+      this.reportStats.detections = (toNumber(this.reportStats.detections) + savedDetections).toLocaleString("en-US");
+
+      if (record.kind === "image") {
+        this.reportStats.images = String(toNumber(this.reportStats.images) + 1);
+      } else {
+        this.reportStats.videos = String(toNumber(this.reportStats.videos) + 1);
+      }
+    },
+    selectReport(record) {
+      this.selectedReportId = record.id;
+    },
+    normalizeReportPageSize() {
+      this.reportPageSize = this.normalizedReportPageSize;
     },
     toggleTheme() {
       this.theme = this.theme === "light" ? "dark" : "light";

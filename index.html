@@ -7,8 +7,8 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div id="app" class="app-shell" :class="{ 'is-sidebar-collapsed': sidebarCollapsed }" v-cloak>
-      <aside class="sidebar" :class="{ 'is-collapsed': sidebarCollapsed }" aria-label="เมนูหลัก">
+    <div id="app" class="app-shell" :class="{ 'is-sidebar-collapsed': sidebarCollapsed, 'is-report-view': currentView === 'report' }" v-cloak>
+      <aside v-show="currentView === 'detect'" class="sidebar" :class="{ 'is-collapsed': sidebarCollapsed }" aria-label="เมนูหลัก">
         <nav class="nav-list">
           <button class="nav-item is-active" title="นำเข้าข้อมูล" aria-label="นำเข้าข้อมูล">
             <span class="nav-number">1</span>
@@ -35,11 +35,11 @@
             </div>
           </div>
           <div class="top-menu" aria-label="เมนูด้านบน">
-            <button class="top-menu-item is-active" title="ตรวจจับเป้าหมาย" aria-label="ตรวจจับเป้าหมาย">
+            <button class="top-menu-item" :class="{ 'is-active': currentView === 'detect' }" title="ตรวจจับเป้าหมาย" aria-label="ตรวจจับเป้าหมาย" @click="setView('detect')">
               <span class="icon target-menu"></span>
               <span>ตรวจจับเป้าหมาย</span>
             </button>
-            <button class="top-menu-item" title="รายงานบันทึกข้อมูล" aria-label="รายงานบันทึกข้อมูล">
+            <button class="top-menu-item" :class="{ 'is-active': currentView === 'report' }" title="รายงานบันทึกข้อมูล" aria-label="รายงานบันทึกข้อมูล" @click="setView('report')">
               <span class="icon report"></span>
               <span>รายงานบันทึกข้อมูล</span>
             </button>
@@ -70,7 +70,7 @@
           </div>
         </header>
 
-        <section class="setup-grid" aria-label="ขั้นตอนการตรวจจับ">
+        <section v-show="currentView === 'detect'" class="setup-grid" aria-label="ขั้นตอนการตรวจจับ">
           <article class="sidebar-tools" aria-label="Target configuration tools">
             <div class="tools-title">
               <span class="tools-mark"><span class="icon sliders"></span></span>
@@ -94,7 +94,7 @@
 
           <article class="panel step-panel">
             <div class="step-head">
-              <span class="step-number step-source" aria-hidden="true"></span>
+              <span class="step-number step-source">1</span>
               <h2>Input Source</h2>
             </div>
             <div class="source-tabs" role="tablist" aria-label="Input source type">
@@ -134,7 +134,7 @@
 
           <article class="panel step-panel target-panel">
             <div class="step-head">
-              <span class="step-number step-target" aria-hidden="true"></span>
+              <span class="step-number step-target">2</span>
               <h2>Target Selection</h2>
             </div>
             <div class="target-grid" id="targetGrid">
@@ -159,7 +159,7 @@
 
           <article class="panel step-panel model-panel">
             <div class="step-head">
-              <span class="step-number step-model" aria-hidden="true"></span>
+              <span class="step-number step-model">3</span>
               <h2>Detection Model</h2>
             </div>
             <label class="model-select">
@@ -184,7 +184,7 @@
           </article>
         </section>
 
-        <section class="content-grid">
+        <section v-show="currentView === 'detect'" class="content-grid">
           <div class="left-stack">
             <article class="panel summary-panel">
               <div class="panel-title">
@@ -313,6 +313,13 @@
                       <span role="cell">{{ row.time }}</span>
                       <span role="cell" v-html="row.message"></span>
                     </div>
+                    <div class="log-save-row">
+                      <button type="button" class="log-save-button" :disabled="!canSaveData" :title="saveDisabledReason" @click="openSaveDialog(group.source)">
+                        <span class="save-icon"></span>
+                        <strong>บันทึกข้อมูล</strong>
+                        <small>{{ group.source.cameraLabel }}</small>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -346,7 +353,177 @@
 
           </div>
         </section>
+
+        <section v-show="currentView === 'report'" class="report-page" aria-label="Saved detection reports">
+          <div class="report-heading">
+            <h1>รายงานบันทึกข้อมูล</h1>
+            <p>จัดการและค้นหาข้อมูลผลการตรวจจับที่บันทึกไว้ทั้งหมด</p>
+          </div>
+
+          <div class="report-stat-grid">
+            <article class="report-stat-card stat-files">
+              <span class="report-stat-icon"></span>
+              <div><span>ไฟล์ทั้งหมด</span><strong>{{ reportStats.files }}</strong><small>ไฟล์</small></div>
+            </article>
+            <article class="report-stat-card stat-video">
+              <span class="report-stat-icon"></span>
+              <div><span>วิดีโอ</span><strong>{{ reportStats.videos }}</strong><small>ไฟล์</small></div>
+            </article>
+            <article class="report-stat-card stat-image">
+              <span class="report-stat-icon"></span>
+              <div><span>รูปภาพ</span><strong>{{ reportStats.images }}</strong><small>ไฟล์</small></div>
+            </article>
+            <article class="report-stat-card stat-detect">
+              <span class="report-stat-icon"></span>
+              <div><span>ผลการตรวจจับทั้งหมด</span><strong>{{ reportStats.detections }}</strong><small>รายการ</small></div>
+            </article>
+            <article class="report-stat-card stat-size">
+              <span class="report-stat-icon"></span>
+              <div><span>ขนาดข้อมูลรวม</span><strong>{{ reportStats.storage }}</strong></div>
+            </article>
+          </div>
+
+          <article class="panel report-filter-panel">
+            <label class="report-search">
+              <span class="icon search"></span>
+              <input type="search" placeholder="ค้นหาไฟล์, ชื่อแหล่งข้อมูล, ประเภทวัตถุ..." />
+            </label>
+            <button class="report-filter-button" type="button">วันที่เริ่มต้น - วันที่สิ้นสุด <span class="icon calendar"></span></button>
+            <label class="report-select"><span>ประเภทไฟล์</span><select><option>ทั้งหมด</option><option>วิดีโอ</option><option>รูปภาพ</option></select></label>
+            <label class="report-select"><span>ประเภทวัตถุ</span><select><option>ทั้งหมด</option><option>AMV</option><option>LMV</option><option>AFV</option><option>CV</option><option>MCV</option></select></label>
+            <label class="report-select"><span>แหล่งข้อมูล</span><select><option>ทั้งหมด</option><option>URL / Stream</option><option>Upload</option></select></label>
+            <button class="report-type-toggle" type="button">วิดีโอ</button>
+            <button class="report-search-button" type="button"><span class="icon search"></span> ค้นหา</button>
+          </article>
+
+          <div class="report-layout">
+            <article class="panel report-table-panel">
+              <div class="report-table-head">
+                <label><input type="checkbox" /></label>
+                <span>ตัวอย่าง</span>
+                <span>ชื่อไฟล์ / แหล่งข้อมูล</span>
+                <span>ประเภทไฟล์</span>
+                <span>ประเภทวัตถุ</span>
+                <span>จำนวนที่ตรวจจับ</span>
+                <span>วันที่ / เวลา</span>
+                <span>ขนาดไฟล์</span>
+                <span>การจัดการ</span>
+              </div>
+
+              <button v-for="record in visibleReportRecords" :key="record.displayId" type="button" class="report-row" :class="{ 'is-selected': selectedReport.id === record.id }" @click="selectReport(record)">
+                <label @click.stop><input type="checkbox" /></label>
+                <span class="report-thumb">
+                  <img :src="record.image" :alt="record.name" />
+                  <time>{{ record.duration }}</time>
+                </span>
+                <span class="report-file-cell">
+                  <strong>{{ record.name }}</strong>
+                  <small>{{ record.source }}</small>
+                  <span class="report-tags"><em v-for="tag in record.tags" :key="`${record.id}-${tag}`">{{ tag }}</em></span>
+                </span>
+                <span class="file-type-badge" :class="record.ext.toLowerCase()">{{ record.ext }}</span>
+                <span class="report-tag-stack"><em v-for="tag in record.tags" :key="`${record.id}-type-${tag}`">{{ tag }}</em></span>
+                <span class="report-metric-strip">
+                  <span v-for="type in targetTypes" :key="`${record.id}-${type}`" :class="type.toLowerCase()">
+                    <i></i><small>{{ type }}</small><strong>{{ record.metrics[type] }}</strong>
+                  </span>
+                </span>
+                <span class="report-date-cell"><strong>{{ record.date }}</strong><small>{{ record.time }}</small></span>
+                <span class="report-size-cell">{{ record.size }}</span>
+                <span class="report-action-buttons">
+                  <span class="icon-button view" title="ดูข้อมูล" aria-label="ดูข้อมูล"></span>
+                  <span class="icon-button download" title="ดาวน์โหลด" aria-label="ดาวน์โหลด"></span>
+                  <span class="icon-button delete" title="ลบ" aria-label="ลบ"></span>
+                </span>
+              </button>
+
+              <div class="report-pagination">
+                <span>แสดง 1 - {{ visibleReportRecords.length }} จาก 236 รายการ</span>
+                <div>
+                  <button type="button"><span class="icon chevron-left"></span></button>
+                  <button class="is-active" type="button">1</button>
+                  <button type="button">2</button>
+                  <button type="button">3</button>
+                  <button type="button">4</button>
+                  <button type="button">5</button>
+                  <button type="button">...</button>
+                  <button type="button">24</button>
+                  <button type="button"><span class="icon chevron-right"></span></button>
+                </div>
+                <label class="report-page-size">
+                  <input v-model.number="reportPageSize" type="number" min="10" step="1" aria-label="จำนวนรายการต่อหน้า" @change="normalizeReportPageSize" @blur="normalizeReportPageSize" />
+                  <span>/ หน้า</span>
+                </label>
+              </div>
+            </article>
+
+            <aside class="report-detail-stack">
+              <article class="panel report-detail-panel">
+                <h2>ตัวอย่างและรายละเอียด</h2>
+                <div class="report-detail-preview">
+                  <img :src="selectedReport.image" :alt="selectedReport.name" />
+                  <span class="box report-b1">AMV</span>
+                  <span class="box report-b2">AMV</span>
+                  <span class="box report-b3">AMV</span>
+                  <button type="button" title="Fullscreen" aria-label="Fullscreen"><span class="icon expand"></span></button>
+                  <time>00:00:45 / {{ selectedReport.duration }}</time>
+                </div>
+                <div class="report-detail-name">
+                  <strong>{{ selectedReport.name }}.{{ selectedReport.ext.toLowerCase() }}</strong>
+                  <small>{{ selectedReport.source }}</small>
+                </div>
+                <dl class="report-detail-grid">
+                  <div><dt>ประเภทไฟล์</dt><dd>{{ selectedReport.ext }}</dd></div>
+                  <div><dt>ความยาววิดีโอ</dt><dd>{{ selectedReport.duration }}</dd></div>
+                  <div><dt>วันที่ / เวลา</dt><dd>{{ selectedReport.date }} {{ selectedReport.time }}</dd></div>
+                  <div><dt>ขนาดไฟล์</dt><dd>{{ selectedReport.size }}</dd></div>
+                  <div><dt>ความละเอียด</dt><dd>{{ selectedReport.resolution }}</dd></div>
+                  <div><dt>FPS</dt><dd>{{ selectedReport.fps }}</dd></div>
+                  <div><dt>ผู้บันทึก</dt><dd>{{ selectedReport.recorder }}</dd></div>
+                  <div><dt>หมายเหตุ</dt><dd>-</dd></div>
+                </dl>
+              </article>
+
+              <article class="panel report-summary-panel">
+                <h2>สรุปผลการตรวจจับ</h2>
+                <div class="report-summary-mini">
+                  <span v-for="type in targetTypes" :key="`detail-${type}`" :class="type.toLowerCase()"><small>{{ type }}</small><strong>{{ selectedReport.metrics[type] }}</strong></span>
+                  <span class="total"><small>รวมทั้งหมด</small><strong>{{ selectedReportTotal }}</strong></span>
+                </div>
+              </article>
+
+            </aside>
+          </div>
+        </section>
       </main>
+      <div v-if="saveDialog.open" class="save-modal" role="dialog" aria-modal="true" @click.self="closeSaveDialog">
+        <div class="save-modal-panel">
+          <button type="button" class="save-modal-close" aria-label="Close save popup" @click="closeSaveDialog">×</button>
+          <div class="save-modal-head">
+            <strong>บันทึกข้อมูล</strong>
+            <span>{{ saveDialog.source?.cameraLabel }} · {{ saveDialog.source?.label }}</span>
+          </div>
+          <div v-if="!saveDialog.confirm" class="save-form">
+            <label>
+              <span>ชื่อไฟล์</span>
+              <input v-model.trim="saveDialog.fileName" type="text" placeholder="กรอกชื่อไฟล์ที่ต้องการบันทึก" @keyup.enter="requestSaveConfirm" />
+            </label>
+            <div class="save-modal-actions">
+              <button type="button" class="secondary-small" @click="closeSaveDialog">ยกเลิก</button>
+              <button type="button" class="primary-small" :disabled="!saveDialog.fileName.trim()" @click="requestSaveConfirm">บันทึก</button>
+            </div>
+          </div>
+          <div v-else class="save-confirm">
+            <div class="save-confirm-icon"></div>
+            <strong>ยืนยันการบันทึกข้อมูล?</strong>
+            <p>ต้องการบันทึกไฟล์ชื่อ <span>{{ saveDialog.fileName }}</span> ใช่หรือไม่</p>
+            <div class="save-modal-actions">
+              <button type="button" class="secondary-small" @click="cancelSaveConfirm">กลับไปแก้ไข</button>
+              <button type="button" class="primary-small" @click="confirmSaveData">ยืนยันบันทึก</button>
+            </div>
+          </div>
+        </div>
+      </div>
       <div v-if="selectedSnapshot" class="snapshot-modal" role="dialog" aria-modal="true" @click.self="closeSnapshotPopup">
         <div class="snapshot-modal-panel">
           <button type="button" class="snapshot-modal-close" aria-label="Close snapshot popup" @click="closeSnapshotPopup">×</button>
