@@ -14,17 +14,27 @@ fs.copyFileSync(
   path.join(openAiDir, "hosting.json")
 );
 
+const indexHtml = fs.readFileSync(path.join(dist, "index.html"), "utf8");
+
 fs.writeFileSync(
   path.join(serverDir, "index.js"),
-  `export default {
+  `const INDEX_HTML = ${JSON.stringify(indexHtml)};
+
+export default {
   async fetch(request, env) {
-    const response = await env.ASSETS.fetch(request);
-    if (response.status !== 404) return response;
-
     const url = new URL(request.url);
-    if (url.pathname.includes(".")) return response;
+    const acceptsHtml = request.headers.get("accept")?.includes("text/html");
 
-    return env.ASSETS.fetch(new Request(new URL("/", request.url), request));
+    if (url.pathname === "/" || (!url.pathname.includes(".") && acceptsHtml)) {
+      return new Response(INDEX_HTML, {
+        headers: {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "no-store"
+        }
+      });
+    }
+
+    return env.ASSETS.fetch(request);
   }
 };
 `,
