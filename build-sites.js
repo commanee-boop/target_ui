@@ -5,6 +5,7 @@ const root = __dirname;
 const dist = path.join(root, "dist");
 const serverDir = path.join(dist, "server");
 const openAiDir = path.join(dist, ".openai");
+const distAssetsDir = path.join(dist, "assets");
 
 fs.mkdirSync(serverDir, { recursive: true });
 fs.mkdirSync(openAiDir, { recursive: true });
@@ -14,7 +15,14 @@ fs.copyFileSync(
   path.join(openAiDir, "hosting.json")
 );
 
-const indexHtml = fs.readFileSync(path.join(dist, "index.html"), "utf8");
+fs.cpSync(path.join(root, "assets"), distAssetsDir, { recursive: true });
+
+const escapeScriptEnd = (value) => value.replace(/<\/script/gi, "<\\/script");
+const styles = fs.readFileSync(path.join(root, "styles.css"), "utf8");
+const appScript = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const indexHtml = fs.readFileSync(path.join(root, "index.html"), "utf8")
+  .replace(/<link\s+rel="stylesheet"\s+href="styles\.css"\s*\/?>/i, `<style>\n${styles}\n</style>`)
+  .replace(/<script\s+src="app\.js"><\/script>/i, `<script>\n${escapeScriptEnd(appScript)}\n</script>`);
 
 fs.writeFileSync(
   path.join(serverDir, "index.js"),
