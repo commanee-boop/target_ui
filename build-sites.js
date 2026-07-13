@@ -17,12 +17,7 @@ fs.copyFileSync(
 
 fs.cpSync(path.join(root, "assets"), distAssetsDir, { recursive: true });
 
-const escapeScriptEnd = (value) => value.replace(/<\/script/gi, "<\\/script");
-const styles = fs.readFileSync(path.join(root, "styles.css"), "utf8");
-const appScript = fs.readFileSync(path.join(root, "app.js"), "utf8");
-const indexHtml = fs.readFileSync(path.join(root, "index.html"), "utf8")
-  .replace(/<link\s+rel="stylesheet"\s+href="styles\.css"\s*\/?>/i, `<style>\n${styles}\n</style>`)
-  .replace(/<script\s+src="app\.js"><\/script>/i, `<script>\n${escapeScriptEnd(appScript)}\n</script>`);
+const indexHtml = fs.readFileSync(path.join(dist, "index.html"), "utf8");
 
 fs.writeFileSync(
   path.join(serverDir, "index.js"),
