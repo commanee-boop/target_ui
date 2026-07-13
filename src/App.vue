@@ -1,4 +1,4 @@
-<template>
+﻿<template>
 <div class="app-shell" :class="{ 'is-sidebar-collapsed': sidebarCollapsed, 'is-report-view': currentView === 'report' }" v-cloak>
       <aside v-show="currentView === 'detect'" class="sidebar" :class="{ 'is-collapsed': sidebarCollapsed }" aria-label="เมนูหลัก">
         <nav class="nav-list">
@@ -18,164 +18,57 @@
       </aside>
 
       <main class="workspace">
-        <header class="topbar">
-          <div class="top-brand" aria-label="ระบบตรวจจับเป้าหมายทางทหาร">
-            <img src="/assets/target-command-logo.png" alt="" />
-            <div class="top-brand-copy">
-              <strong>MILITARY TARGET DETECTION SYSTEM</strong>
-              <span>ระบบตรวจจับเป้าหมายทางทหาร</span>
-            </div>
-          </div>
-          <div class="top-menu" aria-label="เมนูด้านบน">
-            <button class="top-menu-item" :class="{ 'is-active': currentView === 'detect' }" title="ตรวจจับเป้าหมาย" aria-label="ตรวจจับเป้าหมาย" @click="setView('detect')">
-              <span class="icon target-menu"></span>
-              <span>ตรวจจับเป้าหมาย</span>
-            </button>
-            <button class="top-menu-item" :class="{ 'is-active': currentView === 'report' }" title="รายงานบันทึกข้อมูล" aria-label="รายงานบันทึกข้อมูล" @click="setView('report')">
-              <span class="icon report"></span>
-              <span>รายงานบันทึกข้อมูล</span>
-            </button>
-          </div>
-          <div class="operator-cluster">
-            <button id="themeToggle" class="theme-toggle" type="button" :title="themeTitle" :aria-label="themeTitle" :aria-pressed="theme === 'light'" @click="toggleTheme">
-              <span class="theme-icon" aria-hidden="true"></span>
-            </button>
-            <div class="clock">
-              <span id="clockDate">{{ clockDate }}</span>
-              <span id="clock">{{ clockTime }}</span>
-            </div>
-            <div class="status-pills" aria-label="สถานะระบบ">
-              <span></span>
-              <span></span>
-            </div>
-            <div class="operator">
-              <div class="avatar">A</div>
-              <div>
-                <strong>ผู้ดูแลระบบ</strong>
-                <span>Administrator</span>
-              </div>
-            </div>
-            <button class="logout-button" title="Logout" aria-label="Logout">
-              <span class="icon logout"></span>
-              <span>Logout</span>
-            </button>
-          </div>
-        </header>
+        <TopBar
+          :current-view="currentView"
+          :theme="theme"
+          :theme-title="themeTitle"
+          :clock-date="clockDate"
+          :clock-time="clockTime"
+          @set-view="setView"
+          @toggle-theme="toggleTheme"
+        />
 
         <section v-show="currentView === 'detect'" class="setup-grid" aria-label="ขั้นตอนการตรวจจับ">
-          <article class="sidebar-tools" aria-label="Target configuration tools">
-            <div class="tools-title">
-              <span class="tools-mark"><span class="icon sliders"></span></span>
-              <div>
-                <strong>Target Configuration</strong>
-                <span>Input and detection setup</span>
-              </div>
-            </div>
-            <div class="tools-actions">
-              <button class="tool-action clear-input" type="button" title="Clear input data" aria-label="Clear input data" @click="clearInputData">
-                <span class="tool-icon eraser"></span>
-              </button>
-              <button class="tool-action reset-page" type="button" title="Reset all data" aria-label="Reset all data" @click="resetPageData">
-                <span class="tool-icon refresh"></span>
-              </button>
-              <button class="tool-action collapse-menu" :class="{ 'is-collapsed': sidebarCollapsed }" type="button" :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'" :aria-label="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'" @click.prevent.stop="toggleSidebar">
-                <span class="tool-icon chevron"></span>
-              </button>
-            </div>
-          </article>
+          <SidebarTools
+            :collapsed="sidebarCollapsed"
+            @clear-input="clearInputData"
+            @reset-page="resetPageData"
+            @toggle-sidebar="toggleSidebar"
+          />
 
-          <article class="panel step-panel">
-            <div class="step-head">
-              <span class="step-number step-source">1</span>
-              <h2>Input Source</h2>
-            </div>
-            <div class="source-tabs" role="tablist" aria-label="Input source type">
-              <button class="source-tab" :class="{ 'is-active': inputMode === 'url' }" @click="setInputMode('url')">URL / STREAM</button>
-              <button class="source-tab" :class="{ 'is-active': inputMode === 'file' }" @click="setInputMode('file')">VIDEO / PICTURE</button>
-            </div>
-            <div v-if="inputMode === 'url'" class="source-list">
-              <div v-for="(slot, index) in sourceSlots" :key="slot.id" class="source-slot">
-                <span class="source-index">CAM {{ index + 1 }}</span>
-                <input v-model="slot.url" type="url" :aria-label="`URL stream ${index + 1}`" placeholder="rtsp:// or https:// stream" />
-                <button class="source-remove" type="button" title="Remove source" aria-label="Remove source" :disabled="sourceSlots.length === 1" @click="removeSourceSlot(slot)">×</button>
-              </div>
-              <div class="source-actions-row">
-                <button class="secondary-small" type="button" :disabled="sourceSlots.length >= 4" @click="addSourceSlot">Add source</button>
-                <button id="connectBtn" class="primary-small" @click="connectStream">{{ connectLabel }}</button>
-              </div>
-            </div>
-            <div v-else class="source-list">
-              <div v-for="(slot, index) in sourceSlots" :key="slot.id" class="source-slot file-source">
-                <span class="source-index">CAM {{ index + 1 }}</span>
-                <label class="file-button-inline">
-                  <input class="hidden-file" type="file" :accept="fileAccept" @change="handleFileSelect($event, slot)" />
-                  <span>{{ slot.fileName || 'Choose Video / Picture' }}</span>
-                </label>
-                <button class="source-remove" type="button" title="Remove source" aria-label="Remove source" :disabled="sourceSlots.length === 1" @click="removeSourceSlot(slot)">×</button>
-              </div>
-              <div class="source-actions-row">
-                <button class="secondary-small" type="button" :disabled="sourceSlots.length >= 4" @click="addSourceSlot">Add source</button>
-                <button class="primary-small" @click="connectStream">{{ connectLabel }}</button>
-              </div>
-            </div>
-            <div class="connection-state" :class="sourceStatusClass">
-              <span></span>
-              <strong id="connectionText">{{ sourceStatus }}</strong>
-            </div>
-          </article>
+          <InputSourcePanel
+            :input-mode="inputMode"
+            :source-slots="sourceSlots"
+            :file-accept="fileAccept"
+            :connect-label="connectLabel"
+            :source-status="sourceStatus"
+            :source-status-class="sourceStatusClass"
+            @set-input-mode="setInputMode"
+            @add-source-slot="addSourceSlot"
+            @remove-source-slot="removeSourceSlot"
+            @update-source-url="updateSourceUrl"
+            @file-select="handleFileSelect"
+            @connect-stream="connectStream"
+          />
 
-          <article class="panel step-panel target-panel target-class-panel">
-            <button class="target-class-head" type="button" :aria-expanded="!targetPanelCollapsed" @click="targetPanelCollapsed = !targetPanelCollapsed">
-              <span class="target-head-icon"></span>
-              <strong>TARGET CLASSES</strong>
-              <span class="target-head-chevron"></span>
-            </button>
-            <div v-show="!targetPanelCollapsed" class="target-class-list" id="targetGrid">
-              <button class="target-class-row" :class="{ 'is-selected': isTargetSelected('ALL'), 'is-muted': !isTargetSelected('ALL') }" type="button" data-type="ALL" title="Select all target classes" aria-label="Select all target classes" @click="selectTarget('ALL')">
-                <span class="target-check" aria-hidden="true"></span>
-                <span class="target-class-copy">SELECT ALL</span>
-                <span class="target-class-action"></span>
-              </button>
-              <button v-for="target in targetClassOptions" :key="target.id" class="target-class-row" :class="{ 'is-selected': isTargetSelected(target.id), 'is-muted': !isTargetSelected(target.id) }" type="button" :data-type="target.id" :title="target.detail" :aria-label="target.detail" @click="selectTarget(target.id)">
-                <span class="target-check" aria-hidden="true"></span>
-                <span class="target-class-copy">
-                  <strong>{{ target.id }}</strong>
-                  <small>{{ target.detail }}</small>
-                </span>
-                <span class="target-color-swatch" :style="{ '--target-row-color': target.color }"></span>
-              </button>
-            </div>
-          </article>
 
-          <article class="panel step-panel model-panel">
-            <div class="step-head">
-              <span class="step-number step-model">3</span>
-              <h2>Detection Model</h2>
-            </div>
-            <label class="model-select">
-              <span>Model</span>
-              <select v-model="selectedModel" aria-label="Detection model">
-                <option v-for="model in detectionModels" :key="model.id" :value="model.id">
-                  {{ model.name }}
-                </option>
-              </select>
-            </label>
-            <div class="model-summary">
-              <span class="processor">AI</span>
-              <div>
-                <strong>{{ selectedModelName }}</strong>
-                <span>{{ detectionModels.find((model) => model.id === selectedModel)?.detail }}</span>
-              </div>
-            </div>
-            <button id="startBtn" class="primary-action" :class="{ 'is-running': running }" @click="toggleRunning">
-              <span class="play-icon"></span>
-              <strong>{{ running ? 'Detecting...' : 'Start Detection' }}</strong>
-            </button>
-            <button class="stop-action" type="button" :disabled="!running" @click="stopDetection">
-              <span class="stop-action-icon"></span>
-              <strong>Stop Detection</strong>
-            </button>
-          </article>
+          <TargetClassPanel
+            :all-selected="allTargetsSelected"
+            :collapsed="targetPanelCollapsed"
+            :selected-targets="selectedTargets"
+            :targets="targetClassOptions"
+            @select-target="selectTarget"
+            @toggle-collapsed="targetPanelCollapsed = !targetPanelCollapsed"
+          />
+
+          <DetectionModelPanel
+            v-model:selected-model="selectedModel"
+            :models="detectionModels"
+            :running="running"
+            :selected-model-name="selectedModelName"
+            @toggle-running="toggleRunning"
+            @stop-detection="stopDetection"
+          />
         </section>
 
         <section v-show="currentView === 'detect'" class="content-grid">
@@ -594,7 +487,20 @@
 </template>
 
 <script>
+import DetectionModelPanel from "./components/DetectionModelPanel.vue";
+import InputSourcePanel from "./components/InputSourcePanel.vue";
+import SidebarTools from "./components/SidebarTools.vue";
+import TargetClassPanel from "./components/TargetClassPanel.vue";
+import TopBar from "./components/TopBar.vue";
+
 export default {
+  components: {
+    DetectionModelPanel,
+    InputSourcePanel,
+    SidebarTools,
+    TargetClassPanel,
+    TopBar
+  },
   data() {
     return {
       clockTime: "10:15:37",
@@ -1211,6 +1117,12 @@ export default {
       this.sourceSlots = this.sourceSlots.filter((item) => item.id !== slot.id);
       if (!this.sourceSlots.length) {
         this.addSourceSlot();
+      }
+    },
+    updateSourceUrl(slot, value) {
+      const sourceSlot = this.sourceSlots.find((item) => item.id === slot.id);
+      if (sourceSlot) {
+        sourceSlot.url = value;
       }
     },
     resetSourceSlots() {
