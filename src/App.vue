@@ -28,17 +28,17 @@
           </div>
           <div class="top-menu" aria-label="เมนูด้านบน">
             <button class="top-menu-item" :class="{ 'is-active': currentView === 'detect' }" title="ตรวจจับเป้าหมาย" aria-label="ตรวจจับเป้าหมาย" @click="setView('detect')">
-              <span class="icon target-menu"></span>
+              <span class="bi bi-crosshair"></span>
               <span>ตรวจจับเป้าหมาย</span>
             </button>
             <button class="top-menu-item" :class="{ 'is-active': currentView === 'report' }" title="รายงานบันทึกข้อมูล" aria-label="รายงานบันทึกข้อมูล" @click="setView('report')">
-              <span class="icon report"></span>
+              <span class="bi bi-clipboard-data"></span>
               <span>รายงานบันทึกข้อมูล</span>
             </button>
           </div>
           <div class="operator-cluster">
             <button id="themeToggle" class="theme-toggle" type="button" :title="themeTitle" :aria-label="themeTitle" :aria-pressed="theme === 'light'" @click="toggleTheme">
-              <span class="theme-icon" aria-hidden="true"></span>
+              <span class="bi" :class="theme === 'light' ? 'bi-moon-stars-fill' : 'bi-sun-fill'" aria-hidden="true"></span>
             </button>
             <div class="clock">
               <span id="clockDate">{{ clockDate }}</span>
@@ -56,7 +56,7 @@
               </div>
             </div>
             <button class="logout-button" title="Logout" aria-label="Logout">
-              <span class="icon logout"></span>
+              <span class="bi bi-box-arrow-right"></span>
               <span>Logout</span>
             </button>
           </div>
@@ -65,7 +65,7 @@
         <section v-show="currentView === 'detect'" class="setup-grid" aria-label="ขั้นตอนการตรวจจับ">
           <article class="sidebar-tools" aria-label="Target configuration tools">
             <div class="tools-title">
-              <span class="tools-mark"><span class="icon sliders"></span></span>
+              <span class="tools-mark"><span class="bi bi-sliders"></span></span>
               <div>
                 <strong>Target Configuration</strong>
                 <span>Input and detection setup</span>
@@ -73,13 +73,13 @@
             </div>
             <div class="tools-actions">
               <button class="tool-action clear-input" type="button" title="Clear input data" aria-label="Clear input data" @click="clearInputData">
-                <span class="tool-icon eraser"></span>
+                <span class="bi bi-eraser"></span>
               </button>
               <button class="tool-action reset-page" type="button" title="Reset all data" aria-label="Reset all data" @click="resetPageData">
-                <span class="tool-icon refresh"></span>
+                <span class="bi bi-arrow-clockwise"></span>
               </button>
               <button class="tool-action collapse-menu" :class="{ 'is-collapsed': sidebarCollapsed }" type="button" :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'" :aria-label="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'" @click.prevent.stop="toggleSidebar">
-                <span class="tool-icon chevron"></span>
+                <span class="bi bi-chevron-left"></span>
               </button>
             </div>
           </article>
@@ -97,7 +97,7 @@
               <div v-for="(slot, index) in sourceSlots" :key="slot.id" class="source-slot">
                 <span class="source-index">CAM {{ index + 1 }}</span>
                 <input v-model="slot.url" type="url" :aria-label="`URL stream ${index + 1}`" placeholder="rtsp:// or https:// stream" />
-                <button class="source-remove" type="button" title="Remove source" aria-label="Remove source" :disabled="sourceSlots.length === 1" @click="removeSourceSlot(slot)">×</button>
+                <button class="source-remove" type="button" title="Remove source" aria-label="Remove source" :disabled="sourceSlots.length === 1" @click="removeSourceSlot(slot)"><span class="bi bi-x-lg"></span></button>
               </div>
               <div class="source-actions-row">
                 <button class="secondary-small" type="button" :disabled="sourceSlots.length >= 4" @click="addSourceSlot">Add source</button>
@@ -111,7 +111,7 @@
                   <input class="hidden-file" type="file" :accept="fileAccept" @change="handleFileSelect($event, slot)" />
                   <span>{{ slot.fileName || 'Choose Video / Picture' }}</span>
                 </label>
-                <button class="source-remove" type="button" title="Remove source" aria-label="Remove source" :disabled="sourceSlots.length === 1" @click="removeSourceSlot(slot)">×</button>
+                <button class="source-remove" type="button" title="Remove source" aria-label="Remove source" :disabled="sourceSlots.length === 1" @click="removeSourceSlot(slot)"><span class="bi bi-x-lg"></span></button>
               </div>
               <div class="source-actions-row">
                 <button class="secondary-small" type="button" :disabled="sourceSlots.length >= 4" @click="addSourceSlot">Add source</button>
@@ -126,18 +126,20 @@
 
           <article class="panel step-panel target-panel target-class-panel">
             <button class="target-class-head" type="button" :aria-expanded="!targetPanelCollapsed" @click="targetPanelCollapsed = !targetPanelCollapsed">
-              <span class="target-head-icon"></span>
+              <span class="bi bi-bullseye"></span>
               <strong>TARGET CLASSES</strong>
               <span class="target-head-chevron"></span>
             </button>
             <div v-show="!targetPanelCollapsed" class="target-class-list" id="targetGrid">
               <button class="target-class-row" :class="{ 'is-selected': isTargetSelected('ALL'), 'is-muted': !isTargetSelected('ALL') }" type="button" data-type="ALL" title="Select all target classes" aria-label="Select all target classes" @click="selectTarget('ALL')">
                 <span class="target-check" aria-hidden="true"></span>
+                <span class="bi bi-list-check target-class-icon" aria-hidden="true"></span>
                 <span class="target-class-copy">SELECT ALL</span>
                 <span class="target-class-action"></span>
               </button>
               <button v-for="target in targetClassOptions" :key="target.id" class="target-class-row" :class="{ 'is-selected': isTargetSelected(target.id), 'is-muted': !isTargetSelected(target.id) }" type="button" :data-type="target.id" :title="target.detail" :aria-label="target.detail" @click="selectTarget(target.id)">
                 <span class="target-check" aria-hidden="true"></span>
+                <span class="bi target-class-icon" :class="targetTypeIconClass(target.id)" aria-hidden="true"></span>
                 <span class="target-class-copy">
                   <strong>{{ target.id }}</strong>
                   <small>{{ target.detail }}</small>
@@ -168,11 +170,11 @@
               </div>
             </div>
             <button id="startBtn" class="primary-action" :class="{ 'is-running': running }" @click="toggleRunning">
-              <span class="play-icon"></span>
+              <span class="bi bi-play-fill"></span>
               <strong>{{ running ? 'Detecting...' : 'Start Detection' }}</strong>
             </button>
             <button class="stop-action" type="button" :disabled="!running" @click="stopDetection">
-              <span class="stop-action-icon"></span>
+              <span class="bi bi-stop-fill"></span>
               <strong>Stop Detection</strong>
             </button>
           </article>
@@ -214,8 +216,8 @@
               <div class="panel-title compact">
                 <h2>ภาพแสดงผลขนาดใหญ่ (Live)</h2>
                 <div class="preview-tools">
-                  <button title="บันทึกภาพ" aria-label="บันทึกภาพ"><span class="icon camera"></span></button>
-                  <button type="button" :title="fullscreenActive ? 'Exit fullscreen' : 'Fullscreen'" :aria-label="fullscreenActive ? 'Exit fullscreen' : 'Fullscreen'" @click="toggleFullscreen"><span class="icon expand" :class="{ 'is-active': fullscreenActive }"></span></button>
+                  <button title="บันทึกภาพ" aria-label="บันทึกภาพ"><span class="bi bi-camera"></span></button>
+                  <button type="button" :title="fullscreenActive ? 'Exit fullscreen' : 'Fullscreen'" :aria-label="fullscreenActive ? 'Exit fullscreen' : 'Fullscreen'" @click="toggleFullscreen"><span class="bi" :class="fullscreenActive ? 'bi-fullscreen-exit' : 'bi-arrows-fullscreen'"></span></button>
                 </div>
               </div>
               <div class="live-status-strip" aria-label="สถานะการตรวจจับบนภาพขนาดใหญ่">
@@ -225,7 +227,7 @@
                     <strong>{{ card.value }}<small v-if="card.unit">{{ card.unit }}</small></strong>
                     <em>{{ card.note }}</em>
                   </div>
-                  <span class="live-status-icon" aria-hidden="true"></span>
+                  <span class="bi live-status-bi" :class="liveStatusIconClass(card.id)" aria-hidden="true"></span>
                 </article>
               </div>
               <div ref="liveFrame" class="live-frame" :class="[`source-count-${previewSourceCount}`, { 'has-sources': activeSources.length, 'is-fullscreen': fullscreenActive }]">
@@ -238,11 +240,11 @@
                   <span class="box b1">AMV</span>
                   <span class="box b3">LMV</span>
                   <div class="feed-control-bar" aria-label="Camera playback controls">
-                    <button type="button" title="Previous" aria-label="Previous"><span class="icon prev"></span></button>
-                    <button type="button" title="Play" aria-label="Play"><span class="icon play-mini"></span></button>
-                    <button type="button" title="Pause" aria-label="Pause" class="pause-bars"></button>
-                    <button type="button" title="Stop" aria-label="Stop"><span class="control-icon stop-icon"></span></button>
-                    <button type="button" title="Restart" aria-label="Restart"><span class="control-icon restart-icon"></span></button>
+                    <button type="button" title="Previous" aria-label="Previous"><span class="bi bi-skip-backward-fill"></span></button>
+                    <button type="button" title="Play" aria-label="Play"><span class="bi bi-play-fill"></span></button>
+                    <button type="button" title="Pause" aria-label="Pause"><span class="bi bi-pause-fill"></span></button>
+                    <button type="button" title="Stop" aria-label="Stop"><span class="bi bi-stop-fill"></span></button>
+                    <button type="button" title="Restart" aria-label="Restart"><span class="bi bi-arrow-clockwise"></span></button>
                     <div class="feed-progress"><span></span></div>
                     <time>00:01:24 / 00:10:00</time>
                     <button type="button" class="feed-speed" title="Playback speed" aria-label="Playback speed">1.0x</button>
@@ -257,28 +259,28 @@
                 <span class="box b4">AFV</span>
                 <span class="box b5">AMV</span>
                 <div class="live-overlay-menu" aria-label="Live view tools">
-                  <button type="button" title="Zoom in" aria-label="Zoom in"><span class="overlay-symbol plus"></span></button>
-                  <button type="button" title="Zoom out" aria-label="Zoom out"><span class="overlay-symbol minus"></span></button>
-                  <button type="button" title="Capture image" aria-label="Capture image"><span class="icon camera"></span></button>
-                  <button type="button" :title="fullscreenActive ? 'Exit fullscreen' : 'Fullscreen'" :aria-label="fullscreenActive ? 'Exit fullscreen' : 'Fullscreen'" @click.stop="toggleFullscreen"><span class="icon expand" :class="{ 'is-active': fullscreenActive }"></span></button>
+                  <button type="button" title="Zoom in" aria-label="Zoom in"><span class="bi bi-plus-lg"></span></button>
+                  <button type="button" title="Zoom out" aria-label="Zoom out"><span class="bi bi-dash-lg"></span></button>
+                  <button type="button" title="Capture image" aria-label="Capture image"><span class="bi bi-camera"></span></button>
+                  <button type="button" :title="fullscreenActive ? 'Exit fullscreen' : 'Fullscreen'" :aria-label="fullscreenActive ? 'Exit fullscreen' : 'Fullscreen'" @click.stop="toggleFullscreen"><span class="bi" :class="fullscreenActive ? 'bi-fullscreen-exit' : 'bi-arrows-fullscreen'"></span></button>
                 </div>
                 <div class="live-frame-tools">
-                  <button type="button" title="จับภาพ" aria-label="จับภาพ"><span class="icon camera"></span></button>
-                  <button type="button" title="ย่อภาพ" aria-label="ย่อภาพ" @click.stop="toggleFullscreen"><span class="icon shrink"></span></button>
+                  <button type="button" title="จับภาพ" aria-label="จับภาพ"><span class="bi bi-camera"></span></button>
+                  <button type="button" title="ย่อภาพ" aria-label="ย่อภาพ" @click.stop="toggleFullscreen"><span class="bi bi-fullscreen-exit"></span></button>
                 </div>
               </div>
               <div class="video-bar">
-                <button title="หยุดชั่วคราว" aria-label="หยุดชั่วคราว" class="pause-bars"></button>
-                <button title="ย้อนกลับ" aria-label="ย้อนกลับ"><span class="icon prev"></span></button>
-                <button title="เล่น" aria-label="เล่น"><span class="icon play-mini"></span></button>
-                <button title="เสียง" aria-label="เสียง"><span class="icon volume"></span></button>
-                <button title="ถัดไป" aria-label="ถัดไป"><span class="control-icon next-control"></span></button>
-                <button title="หยุด" aria-label="หยุด"><span class="control-icon stop-icon"></span></button>
-                <button title="เริ่มต้นใหม่" aria-label="เริ่มต้นใหม่"><span class="control-icon restart-icon"></span></button>
+                <button title="หยุดชั่วคราว" aria-label="หยุดชั่วคราว"><span class="bi bi-pause-fill"></span></button>
+                <button title="ย้อนกลับ" aria-label="ย้อนกลับ"><span class="bi bi-skip-backward-fill"></span></button>
+                <button title="เล่น" aria-label="เล่น"><span class="bi bi-play-fill"></span></button>
+                <button title="เสียง" aria-label="เสียง"><span class="bi bi-volume-up-fill"></span></button>
+                <button title="ถัดไป" aria-label="ถัดไป"><span class="bi bi-skip-forward-fill"></span></button>
+                <button title="หยุด" aria-label="หยุด"><span class="bi bi-stop-fill"></span></button>
+                <button title="เริ่มต้นใหม่" aria-label="เริ่มต้นใหม่"><span class="bi bi-arrow-clockwise"></span></button>
                 <div class="progress"><span></span></div>
                 <time>00:01:24 / 00:10:00</time>
-                <button title="จับภาพ" aria-label="จับภาพ"><span class="icon camera"></span></button>
-                <button type="button" :title="fullscreenActive ? 'Exit fullscreen' : 'Fullscreen'" :aria-label="fullscreenActive ? 'Exit fullscreen' : 'Fullscreen'" @click="toggleFullscreen"><span class="icon expand" :class="{ 'is-active': fullscreenActive }"></span></button>
+                <button title="จับภาพ" aria-label="จับภาพ"><span class="bi bi-camera"></span></button>
+                <button type="button" :title="fullscreenActive ? 'Exit fullscreen' : 'Fullscreen'" :aria-label="fullscreenActive ? 'Exit fullscreen' : 'Fullscreen'" @click="toggleFullscreen"><span class="bi" :class="fullscreenActive ? 'bi-fullscreen-exit' : 'bi-arrows-fullscreen'"></span></button>
                 <button class="speed">1.0x</button>
               </div>
             </article>
@@ -335,7 +337,7 @@
                     </div>
                     <div class="log-save-row">
                       <button type="button" class="log-save-button" :disabled="!canSaveData" :title="saveDisabledReason" @click="openSaveDialog(group.source)">
-                        <span class="save-icon"></span>
+                        <span class="bi bi-floppy"></span>
                         <strong>บันทึกข้อมูล</strong>
                         <small>{{ group.source.cameraLabel }}</small>
                       </button>
@@ -350,7 +352,7 @@
                 <h2>ตัวอย่างภาพในช่วงเวลาที่ตรวจจับ (Snapshot Every 10s)</h2>
               </div>
               <div class="snapshot-strip">
-                <button title="ก่อนหน้า" aria-label="ก่อนหน้า"><span class="icon chevron-left"></span></button>
+                <button title="ก่อนหน้า" aria-label="ก่อนหน้า"><span class="bi bi-chevron-left"></span></button>
                 <div class="snapshots source-lanes snapshot-lanes" id="snapshots">
                   <div v-for="group in sourceSnapshots" :key="`snapshot-${group.source.id}`" class="source-lane snapshot-lane">
                     <div class="lane-head">
@@ -366,7 +368,7 @@
                     </div>
                   </div>
                 </div>
-                <button title="ถัดไป" aria-label="ถัดไป"><span class="icon chevron-right"></span></button>
+                <button title="ถัดไป" aria-label="ถัดไป"><span class="bi bi-chevron-right"></span></button>
               </div>
               <div class="pager"><span class="is-active"></span><span></span><span></span><span></span></div>
             </article>
@@ -382,38 +384,38 @@
 
           <div class="report-stat-grid">
             <article class="report-stat-card stat-files">
-              <span class="report-stat-icon"></span>
+              <span class="bi bi-folder2-open report-stat-bi"></span>
               <div><span>ไฟล์ทั้งหมด</span><strong>{{ reportDisplayStats.files }}</strong><small>ไฟล์</small></div>
             </article>
             <article class="report-stat-card stat-video">
-              <span class="report-stat-icon"></span>
+              <span class="bi bi-camera-video report-stat-bi"></span>
               <div><span>วิดีโอ</span><strong>{{ reportDisplayStats.videos }}</strong><small>ไฟล์</small></div>
             </article>
             <article class="report-stat-card stat-image">
-              <span class="report-stat-icon"></span>
+              <span class="bi bi-image report-stat-bi"></span>
               <div><span>รูปภาพ</span><strong>{{ reportDisplayStats.images }}</strong><small>ไฟล์</small></div>
             </article>
             <article class="report-stat-card stat-detect">
-              <span class="report-stat-icon"></span>
+              <span class="bi bi-bullseye report-stat-bi"></span>
               <div><span>ผลการตรวจจับทั้งหมด</span><strong>{{ reportDisplayStats.detections }}</strong><small>รายการ</small></div>
             </article>
             <article class="report-stat-card stat-size">
-              <span class="report-stat-icon"></span>
+              <span class="bi bi-hdd-stack report-stat-bi"></span>
               <div><span>ขนาดข้อมูลรวม</span><strong>{{ reportDisplayStats.storage }}</strong></div>
             </article>
           </div>
 
           <article class="panel report-filter-panel">
             <label class="report-search">
-              <span class="icon search"></span>
+              <span class="bi bi-search"></span>
               <input v-model.trim="reportFilters.query" type="search" placeholder="ค้นหาไฟล์, ชื่อแหล่งข้อมูล, ประเภทวัตถุ..." @input="applyReportFilters" @keyup.enter="applyReportFilters" />
             </label>
-            <button class="report-filter-button" type="button" @click="cycleReportDateMode">{{ reportDateLabel }} <span class="icon calendar"></span></button>
+            <button class="report-filter-button" type="button" @click="cycleReportDateMode">{{ reportDateLabel }} <span class="bi bi-calendar3"></span></button>
             <label class="report-select"><span>ประเภทไฟล์</span><select v-model="reportFilters.fileType" @change="applyReportFilters"><option value="all">ทั้งหมด</option><option value="video">วิดีโอ</option><option value="image">รูปภาพ</option></select></label>
             <label class="report-select"><span>ประเภทวัตถุ</span><select v-model="reportFilters.targetType" @change="applyReportFilters"><option value="all">ทั้งหมด</option><option v-for="type in targetTypes" :key="`filter-${type}`" :value="type">{{ type }}</option></select></label>
             <label class="report-select"><span>แหล่งข้อมูล</span><select v-model="reportFilters.sourceType" @change="applyReportFilters"><option value="all">ทั้งหมด</option><option value="stream">URL / Stream</option><option value="upload">Upload</option></select></label>
             <button class="report-type-toggle" type="button" :class="{ 'is-active': reportTypeMode !== 'all' }" @click="toggleReportTypeMode">{{ reportTypeLabel }}</button>
-            <button class="report-search-button" type="button" @click="applyReportFilters"><span class="icon search"></span> ค้นหา</button>
+            <button class="report-search-button" type="button" @click="applyReportFilters"><span class="bi bi-search"></span> ค้นหา</button>
           </article>
           <p v-if="reportNotice" class="report-notice">{{ reportNotice }}</p>
 
@@ -422,8 +424,8 @@
               <div class="report-table-head">
                 <label><input type="checkbox" :checked="allVisibleReportsSelected" @change="toggleVisibleReportSelection" /></label>
                 <span class="report-bulk-menu" aria-label="Bulk report actions">
-                  <button type="button" class="icon-button download" title="ดาวน์โหลดรายการที่เลือก" aria-label="ดาวน์โหลดรายการที่เลือก" :disabled="!selectedReportRecords.length" @click="downloadSelectedReports"></button>
-                  <button type="button" class="icon-button delete" title="ลบรายการที่เลือก" aria-label="ลบรายการที่เลือก" :disabled="!selectedReportRecords.length" @click="deleteSelectedReports"></button>
+                  <button type="button" class="icon-button download" title="ดาวน์โหลดรายการที่เลือก" aria-label="ดาวน์โหลดรายการที่เลือก" :disabled="!selectedReportRecords.length" @click="downloadSelectedReports"><span class="bi bi-download"></span></button>
+                  <button type="button" class="icon-button delete" title="ลบรายการที่เลือก" aria-label="ลบรายการที่เลือก" :disabled="!selectedReportRecords.length" @click="deleteSelectedReports"><span class="bi bi-trash3"></span></button>
                 </span>
                 <span>ตัวอย่าง</span>
                 <span>ชื่อไฟล์ / แหล่งข้อมูล</span>
@@ -450,24 +452,24 @@
                 <span class="report-tag-stack"><em v-for="tag in record.tags" :key="`${record.id}-type-${tag}`">{{ tag }}</em></span>
                 <span class="report-metric-strip">
                   <span v-for="type in targetTypes" :key="`${record.id}-${type}`" :class="type.toLowerCase()">
-                    <i></i><small>{{ type }}</small><strong>{{ record.metrics[type] }}</strong>
+                    <span class="bi metric-vehicle-icon" :class="targetTypeIconClass(type)"></span><small>{{ type }}</small><strong>{{ record.metrics[type] }}</strong>
                   </span>
                 </span>
                 <span class="report-date-cell"><strong>{{ record.date }}</strong><small>{{ record.time }}</small></span>
                 <span class="report-size-cell">{{ record.size }}</span>
                 <span class="report-action-buttons">
-                  <span class="icon-button view" title="ดูข้อมูล" aria-label="ดูข้อมูล" @click.stop="viewReport(record)"></span>
-                  <span class="icon-button download" title="ดาวน์โหลด" aria-label="ดาวน์โหลด" @click.stop="downloadReport(record)"></span>
-                  <span class="icon-button delete" title="ลบ" aria-label="ลบ" @click.stop="deleteReport(record)"></span>
+                  <span class="icon-button view" title="ดูข้อมูล" aria-label="ดูข้อมูล" @click.stop="viewReport(record)"><span class="bi bi-eye"></span></span>
+                  <span class="icon-button download" title="ดาวน์โหลด" aria-label="ดาวน์โหลด" @click.stop="downloadReport(record)"><span class="bi bi-download"></span></span>
+                  <span class="icon-button delete" title="ลบ" aria-label="ลบ" @click.stop="deleteReport(record)"><span class="bi bi-trash3"></span></span>
                 </span>
               </button>
 
               <div class="report-pagination">
                 <span>แสดง {{ reportPageStart }} - {{ reportPageEnd }} จาก {{ filteredReportRecords.length }} รายการ</span>
                 <div>
-                  <button type="button" :disabled="reportPage <= 1" @click="changeReportPage(reportPage - 1)"><span class="icon chevron-left"></span></button>
+                  <button type="button" :disabled="reportPage <= 1" @click="changeReportPage(reportPage - 1)"><span class="bi bi-chevron-left"></span></button>
                   <button v-for="page in reportPaginationPages" :key="`report-page-${page}`" :class="{ 'is-active': reportPage === page }" type="button" @click="changeReportPage(page)">{{ page }}</button>
-                  <button type="button" :disabled="reportPage >= reportTotalPages" @click="changeReportPage(reportPage + 1)"><span class="icon chevron-right"></span></button>
+                  <button type="button" :disabled="reportPage >= reportTotalPages" @click="changeReportPage(reportPage + 1)"><span class="bi bi-chevron-right"></span></button>
                 </div>
                 <label class="report-page-size">
                   <input v-model.number="reportPageSize" type="number" min="10" step="1" aria-label="จำนวนรายการต่อหน้า" @change="normalizeReportPageSize" @blur="normalizeReportPageSize" />
@@ -484,7 +486,7 @@
                   <span class="box report-b1">AMV</span>
                   <span class="box report-b2">AMV</span>
                   <span class="box report-b3">AMV</span>
-                  <button type="button" title="Fullscreen" aria-label="Fullscreen"><span class="icon expand"></span></button>
+                  <button type="button" title="Fullscreen" aria-label="Fullscreen"><span class="bi bi-arrows-fullscreen"></span></button>
                   <time>00:00:45 / {{ selectedReport.duration }}</time>
                 </div>
                 <div class="report-detail-name">
@@ -518,7 +520,7 @@
       <template v-if="saveDialog.open">
         <div class="save-modal" role="dialog" aria-modal="true" @click.self="closeSaveDialog">
         <div class="save-modal-panel">
-          <button type="button" class="save-modal-close" aria-label="Close save popup" @click="closeSaveDialog">×</button>
+          <button type="button" class="save-modal-close" aria-label="Close save popup" @click="closeSaveDialog"><span class="bi bi-x-lg"></span></button>
           <div class="save-modal-head">
             <strong>บันทึกข้อมูล</strong>
             <span>{{ saveDialog.source?.cameraLabel }} · {{ saveDialog.source?.label }}</span>
@@ -534,7 +536,7 @@
             </div>
           </div>
           <div v-else class="save-confirm">
-            <div class="save-confirm-icon"></div>
+            <div class="save-confirm-icon"><span class="bi bi-check2-circle"></span></div>
             <strong>ยืนยันการบันทึกข้อมูล?</strong>
             <p>ต้องการบันทึกไฟล์ชื่อ <span>{{ saveDialog.fileName }}</span> ใช่หรือไม่</p>
             <div class="save-modal-actions">
@@ -548,8 +550,8 @@
       <template v-if="deleteDialog.open">
         <div class="delete-modal" role="dialog" aria-modal="true" @click.self="closeDeleteDialog">
           <div class="delete-modal-panel">
-            <button type="button" class="delete-modal-close" aria-label="Close delete popup" @click="closeDeleteDialog">×</button>
-            <div class="delete-modal-icon" :class="{ 'is-final': deleteDialog.confirm }"></div>
+            <button type="button" class="delete-modal-close" aria-label="Close delete popup" @click="closeDeleteDialog"><span class="bi bi-x-lg"></span></button>
+            <div class="delete-modal-icon" :class="{ 'is-final': deleteDialog.confirm }"><span class="bi" :class="deleteDialog.confirm ? 'bi-exclamation-octagon' : 'bi-trash3'"></span></div>
             <div class="delete-modal-copy delete-modal-copy-active">
               <strong>{{ deleteDialog.confirm ? 'ลบถาวรใช่หรือไม่?' : 'ยืนยันการลบข้อมูล?' }}</strong>
               <p v-if="!deleteDialog.confirm">ต้องการลบรายงาน <span>{{ deleteDialog.record?.name }}.{{ deleteDialog.record?.ext?.toLowerCase() }}</span> ใช่หรือไม่</p>
@@ -575,7 +577,7 @@
       <template v-if="selectedSnapshot">
         <div class="snapshot-modal" role="dialog" aria-modal="true" @click.self="closeSnapshotPopup">
         <div class="snapshot-modal-panel">
-          <button type="button" class="snapshot-modal-close" aria-label="Close snapshot popup" @click="closeSnapshotPopup">×</button>
+          <button type="button" class="snapshot-modal-close" aria-label="Close snapshot popup" @click="closeSnapshotPopup"><span class="bi bi-x-lg"></span></button>
           <div class="snapshot-modal-head">
             <strong>{{ selectedSnapshot.source.cameraLabel }} / {{ selectedSnapshot.type }}</strong>
             <span>{{ selectedSnapshot.time }} · {{ selectedSnapshot.source.label }}</span>
@@ -1051,6 +1053,28 @@ export default {
     });
   },
   methods: {
+    liveStatusIconClass(id) {
+      return {
+        "total-targets": "bi-bounding-box-circles",
+        amv: "bi-truck-front",
+        lmv: "bi-car-front",
+        afv: "bi-shield-fill-check",
+        cv: "bi-crosshair",
+        mcv: "bi-box-seam",
+        fps: "bi-speedometer2",
+        latency: "bi-activity",
+        confidence: "bi-patch-check"
+      }[id] || "bi-circle";
+    },
+    targetTypeIconClass(type) {
+      return {
+        AMV: "bi-bus-front-fill",
+        LMV: "bi-car-front-fill",
+        AFV: "bi-shield-shaded",
+        CV: "bi-truck-front",
+        MCV: "bi-truck-flatbed"
+      }[type] || "bi-car-front";
+    },
     resetPopupState() {
       this.saveDialog = {
         open: false,
