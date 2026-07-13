@@ -3,4 +3,5 @@ live-server.err
 live-server.log
 node_modules/
 dist/
+.deploy-pages/
 *.tar
