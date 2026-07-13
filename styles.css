@@ -2967,7 +2967,7 @@ button.snapshot {
 
 .report-filter-panel {
   display: grid;
-  grid-template-columns: minmax(16rem, 1.4fr) minmax(13rem, 0.9fr) repeat(3, minmax(8rem, 0.75fr)) auto auto;
+  grid-template-columns: minmax(18rem, 1.55fr) minmax(18rem, 1.08fr) repeat(2, minmax(9rem, 0.78fr)) 2.85rem auto;
   gap: 0.55rem;
   align-items: end;
   padding: 0.75rem;
@@ -2976,7 +2976,7 @@ button.snapshot {
 .report-search,
 .report-filter-button,
 .report-select select,
-.report-type-toggle,
+.report-reset-button,
 .report-search-button {
   min-height: 2.85rem;
   color: var(--text);
@@ -3006,7 +3006,7 @@ button.snapshot {
 }
 
 .report-filter-button,
-.report-type-toggle,
+.report-reset-button,
 .report-search-button {
   display: flex;
   align-items: center;
@@ -3023,10 +3023,47 @@ button.snapshot {
   border-color: rgba(118, 180, 255, 0.48);
 }
 
-.report-type-toggle.is-active {
-  color: #ffffff;
-  background: linear-gradient(135deg, rgba(47, 119, 241, 0.95), rgba(21, 154, 205, 0.9));
-  border-color: rgba(118, 210, 255, 0.5);
+.report-reset-button {
+  width: 2.85rem;
+  min-width: 2.85rem;
+  padding: 0;
+  color: #9fe8ff;
+  background:
+    radial-gradient(circle at 35% 24%, rgba(255, 255, 255, 0.2), transparent 28%),
+    linear-gradient(180deg, rgba(18, 52, 72, 0.9), rgba(5, 18, 28, 0.78));
+  border-color: rgba(116, 197, 219, 0.3);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.report-reset-button:hover {
+  color: #fff;
+  border-color: rgba(112, 213, 255, 0.6);
+  background:
+    radial-gradient(circle at 35% 24%, rgba(255, 255, 255, 0.26), transparent 30%),
+    linear-gradient(180deg, rgba(27, 76, 104, 0.95), rgba(8, 30, 44, 0.86));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.12), 0 0 18px rgba(53, 208, 208, 0.2);
+}
+
+.report-reset-button .refresh {
+  position: relative;
+  width: 1.05rem;
+  height: 1.05rem;
+  border: 2px solid currentColor;
+  border-left-color: transparent;
+  border-radius: 50%;
+}
+
+.report-reset-button .refresh::before {
+  position: absolute;
+  top: -0.22rem;
+  right: -0.12rem;
+  width: 0;
+  height: 0;
+  border-left: 0.34rem solid currentColor;
+  border-top: 0.25rem solid transparent;
+  border-bottom: 0.25rem solid transparent;
+  content: "";
+  transform: rotate(32deg);
 }
 
 .report-notice {
@@ -3054,6 +3091,117 @@ button.snapshot {
   width: 100%;
   padding: 0 2rem 0 0.65rem;
   appearance: none;
+}
+
+.report-date-range {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.report-date-range > span {
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
+.report-date-range div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2.85rem;
+  padding: 0 0.42rem;
+  color: var(--text);
+  background: rgba(5, 18, 28, 0.72);
+  border: 1px solid var(--line);
+  border-radius: 0.42rem;
+}
+
+.report-date-field {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.05rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  min-height: 2rem;
+  padding: 0 0.25rem;
+  color: inherit;
+  cursor: pointer;
+}
+
+.report-date-field input {
+  position: absolute;
+  left: 0.2rem;
+  top: 50%;
+  width: 1.15rem;
+  height: 100%;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.date-calendar-icon {
+  position: relative;
+  z-index: 1;
+  width: 0.9rem;
+  height: 0.9rem;
+  color: #d8eef6;
+  border: 1.5px solid currentColor;
+  border-radius: 0.16rem;
+  pointer-events: none;
+}
+
+.date-calendar-icon::before {
+  position: absolute;
+  top: 0.18rem;
+  left: -1.5px;
+  right: -1.5px;
+  height: 1.5px;
+  background: currentColor;
+  content: "";
+}
+
+.date-calendar-icon::after {
+  position: absolute;
+  top: -0.22rem;
+  left: 0.14rem;
+  width: 0.52rem;
+  height: 0.24rem;
+  border-left: 1.5px solid currentColor;
+  border-right: 1.5px solid currentColor;
+  content: "";
+}
+
+.date-value {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.date-value.is-empty {
+  color: #dff5ff;
+}
+
+.report-date-range input {
+  min-width: 0;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  font-size: 0.76rem;
+}
+
+.report-date-range em {
+  color: var(--muted);
+  font-style: normal;
 }
 
 .report-layout {
@@ -3557,9 +3705,10 @@ body.theme-light .report-detail-name strong {
 
 body.theme-light .report-stat-card,
 body.theme-light .report-search,
+body.theme-light .report-date-range div,
 body.theme-light .report-filter-button,
 body.theme-light .report-select select,
-body.theme-light .report-type-toggle,
+body.theme-light .report-reset-button,
 body.theme-light .report-row,
 body.theme-light .report-pagination button,
 body.theme-light .report-page-size,
@@ -3571,6 +3720,12 @@ body.theme-light .report-detail-grid {
 
 body.theme-light .report-page-size input,
 body.theme-light .report-page-size span {
+  color: #173247;
+}
+
+body.theme-light .date-calendar-icon,
+body.theme-light .date-value,
+body.theme-light .date-value.is-empty {
   color: #173247;
 }
 
@@ -3593,11 +3748,7 @@ body.theme-light .report-size-cell {
 
 @media (max-width: 1480px) {
   .report-filter-panel {
-    grid-template-columns: minmax(18rem, 1fr) minmax(12rem, 0.8fr) repeat(2, minmax(8rem, 0.7fr)) auto;
-  }
-
-  .report-select:nth-of-type(3) {
-    display: none;
+    grid-template-columns: minmax(18rem, 1.2fr) minmax(17rem, 1fr) minmax(9rem, 0.8fr) 2.85rem auto;
   }
 
   .report-layout {
@@ -3613,10 +3764,6 @@ body.theme-light .report-size-cell {
   .report-filter-panel,
   .report-layout {
     grid-template-columns: 1fr;
-  }
-
-  .report-select:nth-of-type(3) {
-    display: grid;
   }
 
   .report-detail-stack {
@@ -5541,9 +5688,10 @@ textarea {
 .report-stat-card small,
 .report-search input,
 .report-filter-button,
-.report-type-toggle,
+.report-reset-button,
 .report-search-button,
 .report-select select,
+.report-date-range input,
 .report-pagination,
 .report-page-size input,
 .report-page-size span {
