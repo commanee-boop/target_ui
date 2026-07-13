@@ -229,8 +229,8 @@ button {
   position: sticky;
   top: 0;
   z-index: 20;
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(31rem, 1fr) 26.5rem minmax(31rem, 1fr);
   gap: 1rem;
   align-items: center;
   min-height: 6.35rem;
@@ -245,6 +245,7 @@ button {
   grid-template-columns: 5.15rem minmax(21rem, auto);
   align-items: center;
   gap: 1rem;
+  justify-self: start;
   min-width: 31rem;
   padding: 0;
 }
@@ -336,8 +337,10 @@ button {
   display: grid;
   grid-template-columns: repeat(2, minmax(10.5rem, 1fr));
   gap: 0.65rem;
+  justify-self: center;
   min-width: 0;
-  margin-left: 0.5rem;
+  width: 26.5rem;
+  margin-left: 0;
   padding: 0.35rem;
   border: 1px solid rgba(80, 151, 255, 0.36);
   border-radius: 0.65rem;
@@ -427,8 +430,10 @@ h1 {
 }
 
 .operator-cluster {
+  justify-self: end;
   gap: 0.65rem;
-  margin-left: auto;
+  min-width: 31rem;
+  margin-left: 0;
   padding: 0;
 }
 
@@ -766,6 +771,36 @@ body.theme-light .snapshot-modal-close {
   font-weight: 500;
   line-height: 1;
   white-space: nowrap;
+}
+
+.clock {
+  flex: 0 0 12.2rem;
+  justify-content: center;
+  min-width: 12.2rem;
+}
+
+.clock::before {
+  flex: 0 0 auto;
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.28rem;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 0.22rem rgba(63, 145, 255, 0.22);
+  content: "";
+}
+
+.clock span {
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+#clockDate {
+  width: 4.85rem;
+}
+
+#clock {
+  width: 5.25rem;
 }
 
 .status-pills {
@@ -1781,6 +1816,25 @@ h2 {
   content: "";
 }
 
+.metric:has(.metric-summary-icon)::after {
+  display: none;
+}
+
+.metric .metric-summary-icon {
+  grid-area: icon;
+  position: relative;
+  z-index: 1;
+  justify-self: center;
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: 1.12rem;
+  height: 1.12rem;
+  color: currentColor;
+  font-size: 1rem;
+  line-height: 1;
+}
+
 .metric span,
 .metric small {
   min-width: 0;
@@ -1794,6 +1848,10 @@ h2 {
 }
 
 .metric span {
+  grid-area: label;
+}
+
+.metric .metric-summary-icon + span {
   grid-area: label;
 }
 
@@ -3907,7 +3965,8 @@ body.theme-light .report-size-cell {
 
 @media (max-width: 1480px) {
   .topbar {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(20rem, 1fr) 22rem minmax(27rem, 1fr);
     align-items: center;
     gap: 0.65rem;
   }
@@ -3935,13 +3994,12 @@ body.theme-light .report-size-cell {
   .top-menu {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     width: 22rem;
-    flex: 0 0 22rem;
     gap: 0.42rem;
-    margin-left: 0.2rem;
+    margin-left: 0;
   }
 
   .operator-cluster {
-    flex: 1 1 auto;
+    min-width: 27rem;
     justify-content: flex-end;
     margin-left: 0;
   }
@@ -3954,6 +4012,8 @@ body.theme-light .report-size-cell {
   }
 
   .clock {
+    flex-basis: 11.8rem;
+    min-width: 11.8rem;
     padding: 0 0.65rem;
   }
 
@@ -6976,4 +7036,121 @@ body:not(.report-view) .live-frame.has-sources {
 .live-status-card.latency .live-status-bi,
 .live-status-card.confidence .live-status-bi {
   display: grid;
+}
+
+.summary-panel .metric:has(.metric-summary-icon)::after,
+.summary-lane .metric:has(.metric-summary-icon)::after {
+  display: none;
+}
+
+.summary-panel .metric .metric-summary-icon,
+.summary-lane .metric .metric-summary-icon {
+  grid-area: icon;
+  justify-self: center;
+  align-self: center;
+  width: 1.18rem;
+  height: 1.18rem;
+  color: currentColor;
+  font-size: 1.02rem;
+}
+
+/* Keep summary metric text proportional to the Bootstrap vehicle icons. */
+.summary-panel .metric,
+.summary-lane .metric {
+  grid-template-columns: 2.08rem minmax(0, 1fr) minmax(2.35rem, auto);
+  min-height: 3.12rem;
+  column-gap: 0.56rem;
+  padding: 0.48rem 0.64rem;
+}
+
+.summary-panel .metric::before,
+.summary-lane .metric::before {
+  width: 1.82rem;
+  height: 1.82rem;
+  border-radius: 0.42rem;
+}
+
+.summary-panel .metric .metric-summary-icon,
+.summary-lane .metric .metric-summary-icon {
+  width: 1.12rem;
+  height: 1.12rem;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.summary-panel .metric span:not(.metric-summary-icon),
+.summary-lane .metric span:not(.metric-summary-icon) {
+  overflow: hidden;
+  font-size: 0.84rem;
+  font-weight: 850;
+  line-height: 1.08;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.summary-panel .metric small,
+.summary-lane .metric small {
+  overflow: hidden;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.summary-panel .metric strong,
+.summary-lane .metric strong {
+  min-width: 2.18rem;
+  font-size: clamp(1.34rem, 1.18vw, 1.58rem);
+  font-weight: 850;
+  line-height: 1;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.summary-panel .metric.total strong,
+.summary-lane .metric.total strong {
+  min-width: 2.48rem;
+  font-size: clamp(1.42rem, 1.28vw, 1.72rem);
+}
+
+@media (max-width: 1380px) {
+  .summary-panel .metric,
+  .summary-lane .metric {
+    grid-template-columns: 1.82rem minmax(0, 1fr) minmax(2rem, auto);
+    min-height: 2.86rem;
+    column-gap: 0.44rem;
+    padding: 0.4rem 0.48rem;
+  }
+
+  .summary-panel .metric::before,
+  .summary-lane .metric::before {
+    width: 1.58rem;
+    height: 1.58rem;
+  }
+
+  .summary-panel .metric .metric-summary-icon,
+  .summary-lane .metric .metric-summary-icon {
+    width: 1rem;
+    height: 1rem;
+    font-size: 0.9rem;
+  }
+
+  .summary-panel .metric span:not(.metric-summary-icon),
+  .summary-lane .metric span:not(.metric-summary-icon) {
+    font-size: 0.76rem;
+  }
+
+  .summary-panel .metric small,
+  .summary-lane .metric small {
+    font-size: 0.7rem;
+  }
+
+  .summary-panel .metric strong,
+  .summary-lane .metric strong {
+    min-width: 2rem;
+    font-size: clamp(1.18rem, 1.1vw, 1.38rem);
+  }
 }

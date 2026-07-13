@@ -193,22 +193,22 @@
                     <span>{{ group.source.label }}</span>
                   </div>
                   <div class="metric-grid">
-                    <div class="metric amv"><span>AMV</span><strong>{{ group.metrics.AMV }}</strong></div>
-                    <div class="metric lmv"><span>LMV</span><strong>{{ group.metrics.LMV }}</strong></div>
-                    <div class="metric afv"><span>AFV</span><strong>{{ group.metrics.AFV }}</strong></div>
-                    <div class="metric cv"><span>CV</span><strong>{{ group.metrics.CV }}</strong></div>
-                    <div class="metric mcv"><span>MCV</span><strong>{{ group.metrics.MCV }}</strong></div>
-                    <div class="metric total"><span>Total</span><strong>{{ group.total }}</strong><small>Targets</small></div>
+                    <div class="metric amv"><span class="bi metric-summary-icon" :class="targetTypeIconClass('AMV')"></span><span>AMV</span><strong>{{ group.metrics.AMV }}</strong></div>
+                    <div class="metric lmv"><span class="bi metric-summary-icon" :class="targetTypeIconClass('LMV')"></span><span>LMV</span><strong>{{ group.metrics.LMV }}</strong></div>
+                    <div class="metric afv"><span class="bi metric-summary-icon" :class="targetTypeIconClass('AFV')"></span><span>AFV</span><strong>{{ group.metrics.AFV }}</strong></div>
+                    <div class="metric cv"><span class="bi metric-summary-icon" :class="targetTypeIconClass('CV')"></span><span>CV</span><strong>{{ group.metrics.CV }}</strong></div>
+                    <div class="metric mcv"><span class="bi metric-summary-icon" :class="targetTypeIconClass('MCV')"></span><span>MCV</span><strong>{{ group.metrics.MCV }}</strong></div>
+                    <div class="metric total"><span class="bi bi-grid-3x3-gap-fill metric-summary-icon"></span><span>Total</span><strong>{{ group.total }}</strong><small>Targets</small></div>
                   </div>
                 </div>
               </div>
               <div class="metric-grid legacy-metric-grid">
-                <div class="metric amv"><span>AMV</span><strong>{{ metrics.AMV }}</strong></div>
-                <div class="metric lmv"><span>LMV</span><strong>{{ metrics.LMV }}</strong></div>
-                <div class="metric afv"><span>AFV</span><strong>{{ metrics.AFV }}</strong></div>
-                <div class="metric cv"><span>CV</span><strong>{{ metrics.CV }}</strong></div>
-                <div class="metric mcv"><span>MCV</span><strong>{{ metrics.MCV }}</strong></div>
-                <div class="metric total"><span>รวมทั้งหมด</span><strong id="totalCount">{{ totalCount }}</strong><small>เป้าหมาย</small></div>
+                <div class="metric amv"><span class="bi metric-summary-icon" :class="targetTypeIconClass('AMV')"></span><span>AMV</span><strong>{{ metrics.AMV }}</strong></div>
+                <div class="metric lmv"><span class="bi metric-summary-icon" :class="targetTypeIconClass('LMV')"></span><span>LMV</span><strong>{{ metrics.LMV }}</strong></div>
+                <div class="metric afv"><span class="bi metric-summary-icon" :class="targetTypeIconClass('AFV')"></span><span>AFV</span><strong>{{ metrics.AFV }}</strong></div>
+                <div class="metric cv"><span class="bi metric-summary-icon" :class="targetTypeIconClass('CV')"></span><span>CV</span><strong>{{ metrics.CV }}</strong></div>
+                <div class="metric mcv"><span class="bi metric-summary-icon" :class="targetTypeIconClass('MCV')"></span><span>MCV</span><strong>{{ metrics.MCV }}</strong></div>
+                <div class="metric total"><span class="bi bi-grid-3x3-gap-fill metric-summary-icon"></span><span>รวมทั้งหมด</span><strong id="totalCount">{{ totalCount }}</strong><small>เป้าหมาย</small></div>
               </div>
             </article>
 
