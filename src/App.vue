@@ -193,21 +193,13 @@
                     <span>{{ group.source.label }}</span>
                   </div>
                   <div class="metric-grid">
-                    <div class="metric amv"><span class="metric-bi bi" :class="targetTypeIconClass('AMV')"></span><span>AMV</span><strong>{{ group.metrics.AMV }}</strong></div>
-                    <div class="metric lmv"><span class="metric-bi bi" :class="targetTypeIconClass('LMV')"></span><span>LMV</span><strong>{{ group.metrics.LMV }}</strong></div>
-                    <div class="metric afv"><span class="metric-bi bi" :class="targetTypeIconClass('AFV')"></span><span>AFV</span><strong>{{ group.metrics.AFV }}</strong></div>
-                    <div class="metric cv"><span class="metric-bi bi" :class="targetTypeIconClass('CV')"></span><span>CV</span><strong>{{ group.metrics.CV }}</strong></div>
-                    <div class="metric mcv"><span class="metric-bi bi" :class="targetTypeIconClass('MCV')"></span><span>MCV</span><strong>{{ group.metrics.MCV }}</strong></div>
+                    <div v-for="type in targetTypes" :key="`source-${group.source.id}-${type}`" class="metric" :class="type.toLowerCase()"><span class="metric-bi bi" :class="targetTypeIconClass(type)"></span><span>{{ type }}</span><strong>{{ group.metrics[type] }}</strong></div>
                     <div class="metric total"><span class="metric-bi bi bi-grid-3x3-gap-fill"></span><span>Total</span><strong>{{ group.total }}</strong><small>Targets</small></div>
                   </div>
                 </div>
               </div>
               <div class="metric-grid legacy-metric-grid">
-                <div class="metric amv"><span class="metric-bi bi" :class="targetTypeIconClass('AMV')"></span><span>AMV</span><strong>{{ metrics.AMV }}</strong></div>
-                <div class="metric lmv"><span class="metric-bi bi" :class="targetTypeIconClass('LMV')"></span><span>LMV</span><strong>{{ metrics.LMV }}</strong></div>
-                <div class="metric afv"><span class="metric-bi bi" :class="targetTypeIconClass('AFV')"></span><span>AFV</span><strong>{{ metrics.AFV }}</strong></div>
-                <div class="metric cv"><span class="metric-bi bi" :class="targetTypeIconClass('CV')"></span><span>CV</span><strong>{{ metrics.CV }}</strong></div>
-                <div class="metric mcv"><span class="metric-bi bi" :class="targetTypeIconClass('MCV')"></span><span>MCV</span><strong>{{ metrics.MCV }}</strong></div>
+                <div v-for="type in targetTypes" :key="`legacy-${type}`" class="metric" :class="type.toLowerCase()"><span class="metric-bi bi" :class="targetTypeIconClass(type)"></span><span>{{ type }}</span><strong>{{ metrics[type] }}</strong></div>
                 <div class="metric total"><span class="metric-bi bi bi-grid-3x3-gap-fill"></span><span>รวมทั้งหมด</span><strong id="totalCount">{{ totalCount }}</strong><small>เป้าหมาย</small></div>
               </div>
             </article>
@@ -237,7 +229,8 @@
                   <div class="scan-line"></div>
                   <span class="live-dot">{{ source.cameraLabel }}</span>
                   <span class="feed-name">{{ source.label }}</span>
-                  <span class="box b1">AMV</span>
+                  <span class="box b1">MV</span>
+                  <span class="box b2">AMV</span>
                   <span class="box b3">LMV</span>
                   <div class="feed-control-bar" aria-label="Camera playback controls">
                     <button type="button" title="Previous" aria-label="Previous"><span class="icon bi bi-skip-backward-fill"></span></button>
@@ -253,7 +246,7 @@
                 <img src="/assets/surveillance-road.png" alt="ภาพถนนและยานพาหนะจากมุมสูงสำหรับตัวอย่างการตรวจจับ" />
                 <div class="scan-line"></div>
                 <span class="live-dot">กำลังตรวจจับ...</span>
-                <span class="box b1">AMV</span>
+                <span class="box b1">MV</span>
                 <span class="box b2">AMV</span>
                 <span class="box b3">LMV</span>
                 <span class="box b4">AFV</span>
@@ -306,11 +299,7 @@
               </div>
               <div class="filter-row">
                 <label><input type="checkbox" checked /><span class="filter-icon bi bi-grid-3x3-gap-fill" aria-hidden="true"></span><span>ทั้งหมด</span></label>
-                <label><input type="checkbox" checked /><span class="filter-icon bi" :class="targetTypeIconClass('AMV')" aria-hidden="true"></span><span>AMV</span></label>
-                <label><input type="checkbox" checked /><span class="filter-icon bi" :class="targetTypeIconClass('LMV')" aria-hidden="true"></span><span>LMV</span></label>
-                <label><input type="checkbox" checked /><span class="filter-icon bi" :class="targetTypeIconClass('AFV')" aria-hidden="true"></span><span>AFV</span></label>
-                <label><input type="checkbox" checked /><span class="filter-icon bi" :class="targetTypeIconClass('CV')" aria-hidden="true"></span><span>CV</span></label>
-                <label><input type="checkbox" checked /><span class="filter-icon bi" :class="targetTypeIconClass('MCV')" aria-hidden="true"></span><span>MCV</span></label>
+                <label v-for="type in targetTypes" :key="`target-filter-${type}`"><input type="checkbox" checked /><span class="filter-icon bi" :class="targetTypeIconClass(type)" aria-hidden="true"></span><span>{{ type }}</span></label>
               </div>
             </article>
           </div>
@@ -483,7 +472,7 @@
                 <h2>ตัวอย่างและรายละเอียด</h2>
                 <div class="report-detail-preview">
                   <img :src="selectedReport.image" :alt="selectedReport.name" />
-                  <span class="box report-b1">AMV</span>
+                  <span class="box report-b1">MV</span>
                   <span class="box report-b2">AMV</span>
                   <span class="box report-b3">AMV</span>
                   <button type="button" title="Fullscreen" aria-label="Fullscreen"><span class="icon bi bi-fullscreen"></span></button>
@@ -648,6 +637,7 @@ export default {
       timer: null,
       clockTimer: null,
       metrics: {
+        MV: 12,
         AMV: 15,
         LMV: 23,
         AFV: 7,
@@ -658,12 +648,14 @@ export default {
         { id: 1, time: "10:15:30", message: "เชื่อมต่อแหล่งข้อมูล: https://example.com/stream" },
         { id: 2, time: "10:15:31", message: "โหลดโมเดล AI สำเร็จ" },
         { id: 3, time: "10:15:32", message: "เริ่มการประมวลผลวิดีโอ" },
+        { id: 8, time: "10:15:34", message: "ตรวจพบ MV <strong>(Confidence: 0.93)</strong>" },
         { id: 4, time: "10:15:35", message: "ตรวจพบ AMV <strong>(Confidence: 0.92)</strong>" },
         { id: 5, time: "10:15:36", message: "ตรวจพบ LMV <strong>(Confidence: 0.88)</strong>" },
         { id: 6, time: "10:15:37", message: "ตรวจพบ AMV <strong>(Confidence: 0.95)</strong>" },
         { id: 7, time: "10:15:40", message: "ตรวจพบ AFV <strong>(Confidence: 0.90)</strong>" }
       ],
       generatedEvents: [
+        "ตรวจพบ MV <strong>(Confidence: 0.93)</strong>",
         "ตรวจพบ MCV <strong>(Confidence: 0.87)</strong>",
         "ตรวจพบ CV <strong>(Confidence: 0.91)</strong>",
         "อัปเดตกรอบตรวจจับบนภาพ Live",
@@ -671,6 +663,7 @@ export default {
         "ตรวจพบ AMV <strong>(Confidence: 0.94)</strong>"
       ],
       targetClassOptions: [
+        { id: "MV", detail: "(Military Vehicles)", color: "#6fe58e" },
         { id: "AMV", detail: "(Armored Military Vehicle)", color: "#2ed36f" },
         { id: "LMV", detail: "(Light Military Vehicle)", color: "#2f84ff" },
         { id: "AFV", detail: "(Armored Fighting Vehicle)", color: "#f3ad2f" },
@@ -697,8 +690,8 @@ export default {
           resolution: "1920 x 1080",
           fps: "25",
           recorder: "admin",
-          tags: ["AMV", "LMV"],
-          metrics: { AMV: 18, LMV: 32, AFV: 5, CV: 2, MCV: 0 },
+          tags: ["MV", "AMV", "LMV"],
+          metrics: { MV: 11, AMV: 18, LMV: 32, AFV: 5, CV: 2, MCV: 0 },
           image: "/assets/surveillance-road.png"
         },
         {
@@ -714,8 +707,8 @@ export default {
           resolution: "1920 x 1080",
           fps: "25",
           recorder: "admin",
-          tags: ["AMV", "AFV", "CV"],
-          metrics: { AMV: 6, LMV: 0, AFV: 3, CV: 1, MCV: 0 },
+          tags: ["MV", "AMV", "AFV", "CV"],
+          metrics: { MV: 4, AMV: 6, LMV: 0, AFV: 3, CV: 1, MCV: 0 },
           image: "/assets/surveillance-road.png"
         },
         {
@@ -731,8 +724,8 @@ export default {
           resolution: "2560 x 1440",
           fps: "-",
           recorder: "admin",
-          tags: ["AMV", "LMV"],
-          metrics: { AMV: 4, LMV: 7, AFV: 0, CV: 0, MCV: 0 },
+          tags: ["MV", "AMV", "LMV"],
+          metrics: { MV: 3, AMV: 4, LMV: 7, AFV: 0, CV: 0, MCV: 0 },
           image: "/assets/surveillance-road.png"
         },
         {
@@ -748,8 +741,8 @@ export default {
           resolution: "1920 x 1080",
           fps: "25",
           recorder: "user02",
-          tags: ["AFV", "CV", "MCV"],
-          metrics: { AMV: 0, LMV: 0, AFV: 12, CV: 3, MCV: 8 },
+          tags: ["MV", "AFV", "CV", "MCV"],
+          metrics: { MV: 5, AMV: 0, LMV: 0, AFV: 12, CV: 3, MCV: 8 },
           image: "/assets/surveillance-road.png"
         },
         {
@@ -765,8 +758,8 @@ export default {
           resolution: "3840 x 2160",
           fps: "-",
           recorder: "admin",
-          tags: ["AMV", "LMV", "MCV"],
-          metrics: { AMV: 9, LMV: 14, AFV: 0, CV: 0, MCV: 3 },
+          tags: ["MV", "AMV", "LMV", "MCV"],
+          metrics: { MV: 6, AMV: 9, LMV: 14, AFV: 0, CV: 0, MCV: 3 },
           image: "/assets/surveillance-road.png"
         },
         {
@@ -783,7 +776,7 @@ export default {
           fps: "30",
           recorder: "admin",
           tags: ["LMV"],
-          metrics: { AMV: 0, LMV: 11, AFV: 0, CV: 0, MCV: 0 },
+          metrics: { MV: 2, AMV: 0, LMV: 11, AFV: 0, CV: 0, MCV: 0 },
           image: "/assets/surveillance-road.png"
         }
       ],
@@ -794,7 +787,7 @@ export default {
         detections: "12,845",
         storage: "128.7 GB"
       },
-      snapshots: ["AMV", "LMV", "AFV", "AMV", "CV", "MCV"].map((type, index) => ({
+      snapshots: ["MV", "AMV", "LMV", "AFV", "AMV", "CV", "MCV"].map((type, index) => ({
         type,
         time: `00:00:${String(index * 10).padStart(2, "0")}`
       }))
@@ -841,6 +834,7 @@ export default {
       return this.monitoringSources.map((source, index) => {
         const scale = index + 1;
         const metrics = {
+          MV: this.metrics.MV + index,
           AMV: this.metrics.AMV + index * 2,
           LMV: Math.max(0, this.metrics.LMV - scale),
           AFV: this.metrics.AFV + index,
@@ -863,7 +857,7 @@ export default {
     },
     timelineEvents() {
       return [
-        { left: 2, type: "AMV", time: "00:00:12", className: "amv", boxClass: "popup-box-1" },
+        { left: 2, type: "MV", time: "00:00:12", className: "mv", boxClass: "popup-box-1" },
         { left: 9, type: "AMV", time: "00:00:54", className: "amv", boxClass: "popup-box-4" },
         { left: 14, type: "LMV", time: "00:01:24", className: "lmv", boxClass: "popup-box-2" },
         { left: 21, type: "MCV", time: "00:02:06", className: "mcv", boxClass: "popup-box-4" },
@@ -885,7 +879,7 @@ export default {
       return this.detectionModels.find((model) => model.id === this.selectedModel)?.name || "Select model";
     },
     targetTypes() {
-      return ["AMV", "LMV", "AFV", "CV", "MCV"];
+      return ["MV", "AMV", "LMV", "AFV", "CV", "MCV"];
     },
     allTargetsSelected() {
       return this.targetClassOptions.every((target) => this.selectedTargets.includes(target.id));
@@ -964,7 +958,7 @@ export default {
           fps: "-",
           recorder: "-",
           tags: [],
-          metrics: { AMV: 0, LMV: 0, AFV: 0, CV: 0, MCV: 0 },
+          metrics: { MV: 0, AMV: 0, LMV: 0, AFV: 0, CV: 0, MCV: 0 },
           image: "/assets/surveillance-road.png"
         };
     },
@@ -1012,6 +1006,7 @@ export default {
       const metrics = this.liveStatusMetrics.metrics;
       return [
         { id: "total-targets", label: "TOTAL TARGETS", value: this.liveStatusMetrics.total, note: "▲ 12% vs last hour", trendClass: "trend-up" },
+        { id: "mv", label: "MV", value: metrics.MV, note: "▲ 9%", trendClass: "trend-up" },
         { id: "amv", label: "AMV", value: metrics.AMV, note: "▲ 7%", trendClass: "trend-up" },
         { id: "lmv", label: "LMV", value: metrics.LMV, note: "▲ 15%", trendClass: "trend-warn" },
         { id: "afv", label: "AFV", value: metrics.AFV, note: "▼ 3%", trendClass: "trend-down" },
@@ -1055,6 +1050,7 @@ export default {
   methods: {
     targetTypeIconClass(type) {
       return {
+        MV: "bi-truck",
         AMV: "bi-bus-front-fill",
         LMV: "bi-car-front-fill",
         AFV: "bi-shield-shaded",
@@ -1066,6 +1062,7 @@ export default {
       return {
         totalTargets: "bi-grid-3x3-gap-fill",
         total: "bi-grid-3x3-gap-fill",
+        mv: "bi-truck",
         amv: "bi-bus-front-fill",
         lmv: "bi-car-front-fill",
         afv: "bi-shield-shaded",
@@ -1273,6 +1270,7 @@ export default {
       this.logIndex = 0;
       this.syncSidebarState(false);
       this.metrics = {
+        MV: 12,
         AMV: 15,
         LMV: 23,
         AFV: 7,
@@ -1283,6 +1281,7 @@ export default {
         { id: 1, time: "10:15:30", message: "เชื่อมต่อแหล่งข้อมูล: https://example.com/stream" },
         { id: 2, time: "10:15:31", message: "โหลดโมเดล AI สำเร็จ" },
         { id: 3, time: "10:15:32", message: "เริ่มการประมวลผลวิดีโอ" },
+        { id: 8, time: "10:15:34", message: "ตรวจพบ MV <strong>(Confidence: 0.93)</strong>" },
         { id: 4, time: "10:15:35", message: "ตรวจพบ AMV <strong>(Confidence: 0.92)</strong>" },
         { id: 5, time: "10:15:36", message: "ตรวจพบ LMV <strong>(Confidence: 0.88)</strong>" },
         { id: 6, time: "10:15:37", message: "ตรวจพบ AMV <strong>(Confidence: 0.95)</strong>" },

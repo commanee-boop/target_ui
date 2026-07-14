@@ -1776,6 +1776,7 @@ h2 {
   text-align: right;
 }
 
+.metric.mv::after,
 .metric.amv::after,
 .metric.lmv::after,
 .metric.cv::after,
@@ -1791,6 +1792,10 @@ h2 {
 
 .metric.amv::after {
   border-radius: 0.12rem;
+}
+
+.metric.mv::after {
+  border-radius: 0.16rem;
 }
 
 .metric.lmv::after {
@@ -1833,6 +1838,11 @@ h2 {
     -0.42rem 0.38rem 0 currentColor,
     0.42rem 0.38rem 0 currentColor,
     0 0.64rem 0 -0.04rem currentColor;
+}
+
+.mv strong,
+.mv span {
+  color: #6fe58e;
 }
 
 .amv strong,
@@ -4652,6 +4662,7 @@ body.theme-light .metric::before {
 }
 
 .target-chip[data-type="ALL"] { --target-accent: #7db7ff; }
+.target-chip[data-type="MV"] { --target-accent: #6fe58e; }
 .target-chip[data-type="AMV"] { --target-accent: #67d86b; }
 .target-chip[data-type="LMV"] { --target-accent: #668dff; }
 .target-chip[data-type="AFV"] { --target-accent: #e9ba55; }
@@ -5267,6 +5278,7 @@ body.theme-light .tools-mark {
 }
 
 .live-status-card.total-targets { --status-color: #8da6bc; --status-trend: #6fe58e; }
+.live-status-card.mv { --status-color: #6fe58e; --status-trend: #6fe58e; }
 .live-status-card.amv { --status-color: #6fdc62; --status-trend: #6fe58e; }
 .live-status-card.lmv { --status-color: #d0a337; --status-trend: #f3b33f; }
 .live-status-card.afv { --status-color: #e0b23f; --status-trend: #ff5a64; }

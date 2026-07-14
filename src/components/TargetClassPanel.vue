@@ -68,6 +68,7 @@ export default {
   methods: {
     targetTypeIconClass(type) {
       return {
+        MV: "bi-truck",
         AMV: "bi-bus-front-fill",
         LMV: "bi-car-front-fill",
         AFV: "bi-shield-shaded",
