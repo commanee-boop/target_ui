@@ -7497,3 +7497,105 @@ body.theme-light .theme-toggle .theme-icon.bi::after {
   vertical-align: middle;
   transform: none;
 }
+
+/* Final UI fit pass for the live playback controls and long labels. */
+.video-bar {
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.video-bar button:has(.bi-skip-backward-fill) { order: 1; }
+.video-bar button:has(.bi-play-fill) { order: 2; }
+.video-bar button:has(.bi-skip-forward-fill) { order: 3; }
+.video-bar .pause-bars { order: 4; }
+.video-bar button:has(.bi-stop-fill) { order: 5; }
+.video-bar button:has(.bi-arrow-clockwise) { order: 6; }
+.video-bar .progress { order: 7; }
+.video-bar time { order: 8; }
+.video-bar button:has(.bi-camera) { order: 9; }
+.video-bar .speed { order: 10; }
+
+.video-bar button:has(.bi-volume-up-fill),
+.video-bar button:has(.bi-fullscreen),
+.video-bar button:has(.bi-fullscreen-exit) {
+  display: none !important;
+}
+
+.live-overlay-menu {
+  width: auto;
+}
+
+.top-menu-item,
+.nav-item,
+.source-tab,
+.secondary-small,
+.primary-small,
+.primary-action,
+.stop-action,
+.target-class-row,
+.report-filter-button,
+.report-search-button {
+  min-width: 0;
+}
+
+.top-menu-item span:last-child,
+.nav-item span:last-child,
+.source-tab,
+.secondary-small,
+.primary-small,
+.target-class-copy,
+.target-class-copy strong,
+.target-class-copy small,
+.model-summary span,
+.live-status-copy span,
+.live-status-copy em,
+.feed-name,
+.lane-head span,
+.metric span,
+.report-filter-button span,
+.report-search-button span {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.primary-action strong,
+.stop-action strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+  .video-bar {
+    gap: 0.38rem;
+    padding-inline: 0.65rem;
+  }
+
+  .video-bar time,
+  .video-bar .speed {
+    display: none;
+  }
+}
+
+/* Summary text fit: keep the layout intact and only tune typography. */
+.summary-panel .summary-lane .metric {
+  font-family: "Segoe UI Variable Text", "Segoe UI", "Arial Narrow", Tahoma, sans-serif;
+}
+
+.summary-panel .summary-lane .metric span {
+  font-weight: 700;
+  font-stretch: condensed;
+}
+
+.summary-panel .summary-lane .metric small {
+  font-weight: 650;
+  font-stretch: condensed;
+}
+
+.summary-panel .summary-lane .metric strong {
+  font-family: "Segoe UI Variable Display", "Segoe UI", Arial, sans-serif;
+  font-weight: 800;
+  font-stretch: condensed;
+}

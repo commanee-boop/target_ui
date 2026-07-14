@@ -252,8 +252,6 @@
                 <span class="box b4">AFV</span>
                 <span class="box b5">AMV</span>
                 <div class="live-overlay-menu" aria-label="Live view tools">
-                  <button type="button" title="Zoom in" aria-label="Zoom in"><span class="overlay-symbol bi bi-zoom-in"></span></button>
-                  <button type="button" title="Zoom out" aria-label="Zoom out"><span class="overlay-symbol bi bi-zoom-out"></span></button>
                   <button type="button" title="Capture image" aria-label="Capture image"><span class="icon bi bi-camera"></span></button>
                   <button type="button" :title="fullscreenActive ? 'Exit fullscreen' : 'Fullscreen'" :aria-label="fullscreenActive ? 'Exit fullscreen' : 'Fullscreen'" @click.stop="toggleFullscreen"><span class="icon bi" :class="fullscreenActive ? 'bi-fullscreen-exit' : 'bi-fullscreen'"></span></button>
                 </div>
@@ -263,17 +261,15 @@
                 </div>
               </div>
               <div class="video-bar">
-                <button title="หยุดชั่วคราว" aria-label="หยุดชั่วคราว" class="pause-bars"></button>
                 <button title="ย้อนกลับ" aria-label="ย้อนกลับ"><span class="icon bi bi-skip-backward-fill"></span></button>
                 <button title="เล่น" aria-label="เล่น"><span class="icon bi bi-play-fill"></span></button>
-                <button title="เสียง" aria-label="เสียง"><span class="icon bi bi-volume-up-fill"></span></button>
                 <button title="ถัดไป" aria-label="ถัดไป"><span class="control-icon bi bi-skip-forward-fill"></span></button>
+                <button title="หยุดชั่วคราว" aria-label="หยุดชั่วคราว" class="pause-bars"></button>
                 <button title="หยุด" aria-label="หยุด"><span class="control-icon bi bi-stop-fill"></span></button>
                 <button title="เริ่มต้นใหม่" aria-label="เริ่มต้นใหม่"><span class="control-icon bi bi-arrow-clockwise"></span></button>
                 <div class="progress"><span></span></div>
                 <time>00:01:24 / 00:10:00</time>
                 <button title="จับภาพ" aria-label="จับภาพ"><span class="icon bi bi-camera"></span></button>
-                <button type="button" :title="fullscreenActive ? 'Exit fullscreen' : 'Fullscreen'" :aria-label="fullscreenActive ? 'Exit fullscreen' : 'Fullscreen'" @click="toggleFullscreen"><span class="icon bi" :class="fullscreenActive ? 'bi-fullscreen-exit' : 'bi-fullscreen'"></span></button>
                 <button class="speed">1.0x</button>
               </div>
             </article>
