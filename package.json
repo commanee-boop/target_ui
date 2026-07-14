@@ -9,7 +9,6 @@
     "vite": "^5.4.19"
   },
   "dependencies": {
-    "bootstrap-icons": "^1.13.1",
     "vue": "^3.5.39"
   }
 }

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
 <div class="app-shell" :class="{ 'is-sidebar-collapsed': sidebarCollapsed, 'is-report-view': currentView === 'report' }" v-cloak>
       <aside v-show="currentView === 'detect'" class="sidebar" :class="{ 'is-collapsed': sidebarCollapsed }" aria-label="เมนูหลัก">
         <nav class="nav-list">
@@ -18,57 +18,164 @@
       </aside>
 
       <main class="workspace">
-        <TopBar
-          :current-view="currentView"
-          :theme="theme"
-          :theme-title="themeTitle"
-          :clock-date="clockDate"
-          :clock-time="clockTime"
-          @set-view="setView"
-          @toggle-theme="toggleTheme"
-        />
+        <header class="topbar">
+          <div class="top-brand" aria-label="ระบบตรวจจับเป้าหมายทางทหาร">
+            <img src="/assets/target-command-logo.png" alt="" />
+            <div class="top-brand-copy">
+              <strong>MILITARY TARGET DETECTION SYSTEM</strong>
+              <span>ระบบตรวจจับเป้าหมายทางทหาร</span>
+            </div>
+          </div>
+          <div class="top-menu" aria-label="เมนูด้านบน">
+            <button class="top-menu-item" :class="{ 'is-active': currentView === 'detect' }" title="ตรวจจับเป้าหมาย" aria-label="ตรวจจับเป้าหมาย" @click="setView('detect')">
+              <span class="icon target-menu"></span>
+              <span>ตรวจจับเป้าหมาย</span>
+            </button>
+            <button class="top-menu-item" :class="{ 'is-active': currentView === 'report' }" title="รายงานบันทึกข้อมูล" aria-label="รายงานบันทึกข้อมูล" @click="setView('report')">
+              <span class="icon report"></span>
+              <span>รายงานบันทึกข้อมูล</span>
+            </button>
+          </div>
+          <div class="operator-cluster">
+            <button id="themeToggle" class="theme-toggle" type="button" :title="themeTitle" :aria-label="themeTitle" :aria-pressed="theme === 'light'" @click="toggleTheme">
+              <span class="theme-icon" aria-hidden="true"></span>
+            </button>
+            <div class="clock">
+              <span id="clockDate">{{ clockDate }}</span>
+              <span id="clock">{{ clockTime }}</span>
+            </div>
+            <div class="status-pills" aria-label="สถานะระบบ">
+              <span></span>
+              <span></span>
+            </div>
+            <div class="operator">
+              <div class="avatar">A</div>
+              <div>
+                <strong>ผู้ดูแลระบบ</strong>
+                <span>Administrator</span>
+              </div>
+            </div>
+            <button class="logout-button" title="Logout" aria-label="Logout">
+              <span class="icon logout"></span>
+              <span>Logout</span>
+            </button>
+          </div>
+        </header>
 
         <section v-show="currentView === 'detect'" class="setup-grid" aria-label="ขั้นตอนการตรวจจับ">
-          <SidebarTools
-            :collapsed="sidebarCollapsed"
-            @clear-input="clearInputData"
-            @reset-page="resetPageData"
-            @toggle-sidebar="toggleSidebar"
-          />
+          <article class="sidebar-tools" aria-label="Target configuration tools">
+            <div class="tools-title">
+              <span class="tools-mark"><span class="icon sliders"></span></span>
+              <div>
+                <strong>Target Configuration</strong>
+                <span>Input and detection setup</span>
+              </div>
+            </div>
+            <div class="tools-actions">
+              <button class="tool-action clear-input" type="button" title="Clear input data" aria-label="Clear input data" @click="clearInputData">
+                <span class="tool-icon eraser"></span>
+              </button>
+              <button class="tool-action reset-page" type="button" title="Reset all data" aria-label="Reset all data" @click="resetPageData">
+                <span class="tool-icon refresh"></span>
+              </button>
+              <button class="tool-action collapse-menu" :class="{ 'is-collapsed': sidebarCollapsed }" type="button" :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'" :aria-label="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'" @click.prevent.stop="toggleSidebar">
+                <span class="tool-icon chevron"></span>
+              </button>
+            </div>
+          </article>
 
-          <InputSourcePanel
-            :input-mode="inputMode"
-            :source-slots="sourceSlots"
-            :file-accept="fileAccept"
-            :connect-label="connectLabel"
-            :source-status="sourceStatus"
-            :source-status-class="sourceStatusClass"
-            @set-input-mode="setInputMode"
-            @add-source-slot="addSourceSlot"
-            @remove-source-slot="removeSourceSlot"
-            @update-source-url="updateSourceUrl"
-            @file-select="handleFileSelect"
-            @connect-stream="connectStream"
-          />
+          <article class="panel step-panel">
+            <div class="step-head">
+              <span class="step-number step-source">1</span>
+              <h2>Input Source</h2>
+            </div>
+            <div class="source-tabs" role="tablist" aria-label="Input source type">
+              <button class="source-tab" :class="{ 'is-active': inputMode === 'url' }" @click="setInputMode('url')">URL / STREAM</button>
+              <button class="source-tab" :class="{ 'is-active': inputMode === 'file' }" @click="setInputMode('file')">VIDEO / PICTURE</button>
+            </div>
+            <div v-if="inputMode === 'url'" class="source-list">
+              <div v-for="(slot, index) in sourceSlots" :key="slot.id" class="source-slot">
+                <span class="source-index">CAM {{ index + 1 }}</span>
+                <input v-model="slot.url" type="url" :aria-label="`URL stream ${index + 1}`" placeholder="rtsp:// or https:// stream" />
+                <button class="source-remove" type="button" title="Remove source" aria-label="Remove source" :disabled="sourceSlots.length === 1" @click="removeSourceSlot(slot)">×</button>
+              </div>
+              <div class="source-actions-row">
+                <button class="secondary-small" type="button" :disabled="sourceSlots.length >= 4" @click="addSourceSlot">Add source</button>
+                <button id="connectBtn" class="primary-small" @click="connectStream">{{ connectLabel }}</button>
+              </div>
+            </div>
+            <div v-else class="source-list">
+              <div v-for="(slot, index) in sourceSlots" :key="slot.id" class="source-slot file-source">
+                <span class="source-index">CAM {{ index + 1 }}</span>
+                <label class="file-button-inline">
+                  <input class="hidden-file" type="file" :accept="fileAccept" @change="handleFileSelect($event, slot)" />
+                  <span>{{ slot.fileName || 'Choose Video / Picture' }}</span>
+                </label>
+                <button class="source-remove" type="button" title="Remove source" aria-label="Remove source" :disabled="sourceSlots.length === 1" @click="removeSourceSlot(slot)">×</button>
+              </div>
+              <div class="source-actions-row">
+                <button class="secondary-small" type="button" :disabled="sourceSlots.length >= 4" @click="addSourceSlot">Add source</button>
+                <button class="primary-small" @click="connectStream">{{ connectLabel }}</button>
+              </div>
+            </div>
+            <div class="connection-state" :class="sourceStatusClass">
+              <span></span>
+              <strong id="connectionText">{{ sourceStatus }}</strong>
+            </div>
+          </article>
 
+          <article class="panel step-panel target-panel target-class-panel">
+            <button class="target-class-head" type="button" :aria-expanded="!targetPanelCollapsed" @click="targetPanelCollapsed = !targetPanelCollapsed">
+              <span class="target-head-icon"></span>
+              <strong>TARGET CLASSES</strong>
+              <span class="target-head-chevron"></span>
+            </button>
+            <div v-show="!targetPanelCollapsed" class="target-class-list" id="targetGrid">
+              <button class="target-class-row" :class="{ 'is-selected': isTargetSelected('ALL'), 'is-muted': !isTargetSelected('ALL') }" type="button" data-type="ALL" title="Select all target classes" aria-label="Select all target classes" @click="selectTarget('ALL')">
+                <span class="target-check" aria-hidden="true"></span>
+                <span class="target-class-copy">SELECT ALL</span>
+                <span class="target-class-action"></span>
+              </button>
+              <button v-for="target in targetClassOptions" :key="target.id" class="target-class-row" :class="{ 'is-selected': isTargetSelected(target.id), 'is-muted': !isTargetSelected(target.id) }" type="button" :data-type="target.id" :title="target.detail" :aria-label="target.detail" @click="selectTarget(target.id)">
+                <span class="target-check" aria-hidden="true"></span>
+                <span class="target-class-copy">
+                  <strong>{{ target.id }}</strong>
+                  <small>{{ target.detail }}</small>
+                </span>
+                <span class="target-color-swatch" :style="{ '--target-row-color': target.color }"></span>
+              </button>
+            </div>
+          </article>
 
-          <TargetClassPanel
-            :all-selected="allTargetsSelected"
-            :collapsed="targetPanelCollapsed"
-            :selected-targets="selectedTargets"
-            :targets="targetClassOptions"
-            @select-target="selectTarget"
-            @toggle-collapsed="targetPanelCollapsed = !targetPanelCollapsed"
-          />
-
-          <DetectionModelPanel
-            v-model:selected-model="selectedModel"
-            :models="detectionModels"
-            :running="running"
-            :selected-model-name="selectedModelName"
-            @toggle-running="toggleRunning"
-            @stop-detection="stopDetection"
-          />
+          <article class="panel step-panel model-panel">
+            <div class="step-head">
+              <span class="step-number step-model">3</span>
+              <h2>Detection Model</h2>
+            </div>
+            <label class="model-select">
+              <span>Model</span>
+              <select v-model="selectedModel" aria-label="Detection model">
+                <option v-for="model in detectionModels" :key="model.id" :value="model.id">
+                  {{ model.name }}
+                </option>
+              </select>
+            </label>
+            <div class="model-summary">
+              <span class="processor">AI</span>
+              <div>
+                <strong>{{ selectedModelName }}</strong>
+                <span>{{ detectionModels.find((model) => model.id === selectedModel)?.detail }}</span>
+              </div>
+            </div>
+            <button id="startBtn" class="primary-action" :class="{ 'is-running': running }" @click="toggleRunning">
+              <span class="play-icon"></span>
+              <strong>{{ running ? 'Detecting...' : 'Start Detection' }}</strong>
+            </button>
+            <button class="stop-action" type="button" :disabled="!running" @click="stopDetection">
+              <span class="stop-action-icon"></span>
+              <strong>Stop Detection</strong>
+            </button>
+          </article>
         </section>
 
         <section v-show="currentView === 'detect'" class="content-grid">
@@ -301,29 +408,11 @@
               <span class="icon search"></span>
               <input v-model.trim="reportFilters.query" type="search" placeholder="ค้นหาไฟล์, ชื่อแหล่งข้อมูล, ประเภทวัตถุ..." @input="applyReportFilters" @keyup.enter="applyReportFilters" />
             </label>
-            <label class="report-date-range">
-              <span>วันที่</span>
-              <div>
-                <label class="report-date-field" @click.prevent="toggleReportDatePicker('from')" @keydown.enter.prevent="toggleReportDatePicker('from')" @keydown.space.prevent="toggleReportDatePicker('from')">
-                  <input ref="reportDateFromInput" v-model="reportFilters.dateFrom" type="date" aria-label="วันที่เริ่มต้น" @change="handleReportDateChange" />
-                  <span class="date-calendar-icon" aria-hidden="true"></span>
-                  <span :class="['date-value', { 'is-empty': !reportFilters.dateFrom }]">
-                    {{ formatInputDateForDisplay(reportFilters.dateFrom) || "วว/ดด/ปป" }}
-                  </span>
-                </label>
-                <em>-</em>
-                <label class="report-date-field" @click.prevent="toggleReportDatePicker('to')" @keydown.enter.prevent="toggleReportDatePicker('to')" @keydown.space.prevent="toggleReportDatePicker('to')">
-                  <input ref="reportDateToInput" v-model="reportFilters.dateTo" type="date" aria-label="วันที่สิ้นสุด" @change="handleReportDateChange" />
-                  <span class="date-calendar-icon" aria-hidden="true"></span>
-                  <span :class="['date-value', { 'is-empty': !reportFilters.dateTo }]">
-                    {{ formatInputDateForDisplay(reportFilters.dateTo) || "วว/ดด/ปป" }}
-                  </span>
-                </label>
-              </div>
-            </label>
+            <button class="report-filter-button" type="button" @click="cycleReportDateMode">{{ reportDateLabel }} <span class="icon calendar"></span></button>
+            <label class="report-select"><span>ประเภทไฟล์</span><select v-model="reportFilters.fileType" @change="applyReportFilters"><option value="all">ทั้งหมด</option><option value="video">วิดีโอ</option><option value="image">รูปภาพ</option></select></label>
             <label class="report-select"><span>ประเภทวัตถุ</span><select v-model="reportFilters.targetType" @change="applyReportFilters"><option value="all">ทั้งหมด</option><option v-for="type in targetTypes" :key="`filter-${type}`" :value="type">{{ type }}</option></select></label>
             <label class="report-select"><span>แหล่งข้อมูล</span><select v-model="reportFilters.sourceType" @change="applyReportFilters"><option value="all">ทั้งหมด</option><option value="stream">URL / Stream</option><option value="upload">Upload</option></select></label>
-            <button class="report-reset-button" type="button" title="รีเซตการค้นหา" aria-label="รีเซตการค้นหา" @click="resetReportFilters"><span class="icon refresh"></span></button>
+            <button class="report-type-toggle" type="button" :class="{ 'is-active': reportTypeMode !== 'all' }" @click="toggleReportTypeMode">{{ reportTypeLabel }}</button>
             <button class="report-search-button" type="button" @click="applyReportFilters"><span class="icon search"></span> ค้นหา</button>
           </article>
           <p v-if="reportNotice" class="report-notice">{{ reportNotice }}</p>
@@ -505,20 +594,7 @@
 </template>
 
 <script>
-import DetectionModelPanel from "./components/DetectionModelPanel.vue";
-import InputSourcePanel from "./components/InputSourcePanel.vue";
-import SidebarTools from "./components/SidebarTools.vue";
-import TargetClassPanel from "./components/TargetClassPanel.vue";
-import TopBar from "./components/TopBar.vue";
-
 export default {
-  components: {
-    DetectionModelPanel,
-    InputSourcePanel,
-    SidebarTools,
-    TargetClassPanel,
-    TopBar
-  },
   data() {
     return {
       clockTime: "10:15:37",
@@ -540,13 +616,13 @@ export default {
       selectedReportId: 1,
       reportPageSize: 10,
       reportPage: 1,
-      activeReportDatePicker: "",
+      reportTypeMode: "all",
+      reportDateMode: "all",
       reportFilters: {
         query: "",
+        fileType: "all",
         targetType: "all",
-        sourceType: "all",
-        dateFrom: "",
-        dateTo: ""
+        sourceType: "all"
       },
       selectedReportIds: [],
       reportNotice: "",
@@ -831,16 +907,18 @@ export default {
     },
     filteredReportRecords() {
       const query = this.reportFilters.query.toLowerCase();
+      const typeMode = this.reportTypeMode === "all" ? this.reportFilters.fileType : this.reportTypeMode;
 
       return this.reportRecords.filter((record) => {
         const text = `${record.name} ${record.source} ${record.ext} ${record.kind} ${record.tags.join(" ")}`.toLowerCase();
         const matchesQuery = !query || text.includes(query);
+        const matchesFile = typeMode === "all" || record.kind === typeMode;
         const matchesTarget = this.reportFilters.targetType === "all" || record.tags.includes(this.reportFilters.targetType);
         const isUpload = /upload|อัปโหลด/i.test(record.source);
         const sourceType = isUpload ? "upload" : "stream";
         const matchesSource = this.reportFilters.sourceType === "all" || this.reportFilters.sourceType === sourceType;
         const matchesDate = this.reportMatchesDateMode(record);
-        return matchesQuery && matchesTarget && matchesSource && matchesDate;
+        return matchesQuery && matchesFile && matchesTarget && matchesSource && matchesDate;
       });
     },
     reportTotalPages() {
@@ -897,6 +975,19 @@ export default {
     },
     selectedReportRecords() {
       return this.reportRecords.filter((record) => this.selectedReportIds.includes(record.id));
+    },
+    reportTypeLabel() {
+      if (this.reportTypeMode === "video") return "วิดีโอ";
+      if (this.reportTypeMode === "image") return "รูปภาพ";
+      return "ทั้งหมด";
+    },
+    reportDateLabel() {
+      return {
+        all: "ทุกช่วงเวลา",
+        today: "วันนี้",
+        week: "7 วันล่าสุด",
+        month: "30 วันล่าสุด"
+      }[this.reportDateMode];
     },
     reportDisplayStats() {
       const records = this.filteredReportRecords;
@@ -1122,12 +1213,6 @@ export default {
         this.addSourceSlot();
       }
     },
-    updateSourceUrl(slot, value) {
-      const sourceSlot = this.sourceSlots.find((item) => item.id === slot.id);
-      if (sourceSlot) {
-        sourceSlot.url = value;
-      }
-    },
     resetSourceSlots() {
       this.sourceSlots.forEach((slot) => {
         if (slot.fileUrl) URL.revokeObjectURL(slot.fileUrl);
@@ -1346,19 +1431,6 @@ export default {
       this.reportNotice = `พบ ${this.filteredReportRecords.length} รายการตามเงื่อนไข`;
       this.ensureSelectedReportVisible();
     },
-    resetReportFilters() {
-      this.activeReportDatePicker = "";
-      this.reportFilters = {
-        query: "",
-        targetType: "all",
-        sourceType: "all",
-        dateFrom: "",
-        dateTo: ""
-      };
-      this.reportPage = 1;
-      this.reportNotice = "ล้างเงื่อนไขการค้นหาทั้งหมดแล้ว";
-      this.ensureSelectedReportVisible();
-    },
     ensureSelectedReportVisible() {
       if (!this.filteredReportRecords.length) {
         this.selectedReportId = 0;
@@ -1372,74 +1444,25 @@ export default {
       this.reportPage = Math.min(Math.max(1, page), this.reportTotalPages);
       this.ensureSelectedReportVisible();
     },
-    toggleReportDatePicker(target) {
-      const input = target === "from" ? this.$refs.reportDateFromInput : this.$refs.reportDateToInput;
-      if (!input) return;
-
-      if (this.activeReportDatePicker === target) {
-        this.activeReportDatePicker = "";
-        input.blur();
-        return;
-      }
-
-      this.activeReportDatePicker = target;
-      input.focus({ preventScroll: true });
-      if (typeof input.showPicker === "function") {
-        input.showPicker();
-        return;
-      }
-
-      input.click();
+    toggleReportTypeMode() {
+      const nextMode = this.reportTypeMode === "all" ? "video" : (this.reportTypeMode === "video" ? "image" : "all");
+      this.reportTypeMode = nextMode;
+      this.reportFilters.fileType = nextMode;
+      this.applyReportFilters();
     },
-    handleReportDateChange() {
-      this.activeReportDatePicker = "";
+    cycleReportDateMode() {
+      const modes = ["all", "today", "week", "month"];
+      const currentIndex = modes.indexOf(this.reportDateMode);
+      this.reportDateMode = modes[(currentIndex + 1) % modes.length];
+      this.reportNotice = `เลือกช่วงเวลา: ${this.reportDateLabel}`;
       this.applyReportFilters();
     },
     reportMatchesDateMode(record) {
-      const recordDate = this.parseThaiReportDate(record.date);
-      const fromDate = this.reportFilters.dateFrom ? new Date(`${this.reportFilters.dateFrom}T00:00:00`) : null;
-      const toDate = this.reportFilters.dateTo ? new Date(`${this.reportFilters.dateTo}T23:59:59`) : null;
-
-      if ((fromDate || toDate) && recordDate) {
-        if (fromDate && recordDate < fromDate) return false;
-        if (toDate && recordDate > toDate) return false;
-        return true;
-      }
-
-      if ((fromDate || toDate) && !recordDate) return false;
+      if (this.reportDateMode === "all") return true;
+      if (record.id > 100000) return true;
+      if (this.reportDateMode === "today") return record.id <= 2;
+      if (this.reportDateMode === "week") return record.id <= 4;
       return true;
-    },
-    parseThaiReportDate(value) {
-      if (!value || value === "-") return null;
-
-      const monthMap = {
-        "ม.ค.": 0,
-        "ก.พ.": 1,
-        "มี.ค.": 2,
-        "เม.ย.": 3,
-        "พ.ค.": 4,
-        "มิ.ย.": 5,
-        "ก.ค.": 6,
-        "ส.ค.": 7,
-        "ก.ย.": 8,
-        "ต.ค.": 9,
-        "พ.ย.": 10,
-        "ธ.ค.": 11
-      };
-      const parts = String(value).trim().split(/\s+/);
-      if (parts.length < 3 || monthMap[parts[1]] === undefined) return null;
-
-      const day = Number(parts[0]);
-      const year = Number(parts[2]);
-      if (!Number.isFinite(day) || !Number.isFinite(year)) return null;
-
-      return new Date(year, monthMap[parts[1]], day);
-    },
-    formatInputDateForDisplay(value) {
-      if (!value) return "";
-      const [year, month, day] = value.split("-");
-      if (!year || !month || !day) return "";
-      return `${day}/${month}/${year.slice(-2)}`;
     },
     toggleReportSelection(record) {
       if (this.selectedReportIds.includes(record.id)) {
