@@ -4359,7 +4359,7 @@ body {
   margin-right: auto;
 }
 
-body.report-view #app.app-shell {
+body.report-view #app > .app-shell {
   display: block !important;
   width: 100vw !important;
   max-width: none !important;
@@ -4367,13 +4367,13 @@ body.report-view #app.app-shell {
   padding: 0 !important;
 }
 
-body.report-view #app.app-shell > .sidebar {
+body.report-view #app > .app-shell > .sidebar {
   display: none !important;
   width: 0 !important;
   min-width: 0 !important;
 }
 
-body.report-view #app.app-shell > main.workspace {
+body.report-view #app > .app-shell > main.workspace {
   display: block !important;
   box-sizing: border-box;
   width: 100vw !important;
@@ -4383,7 +4383,7 @@ body.report-view #app.app-shell > main.workspace {
   transform: none !important;
 }
 
-body.report-view #app.app-shell > main.workspace > .report-page {
+body.report-view #app > .app-shell > main.workspace > .report-page {
   display: grid !important;
   width: 100% !important;
   max-width: none !important;
@@ -4392,7 +4392,7 @@ body.report-view #app.app-shell > main.workspace > .report-page {
   justify-items: stretch !important;
 }
 
-body.report-view #app.app-shell > main.workspace > .report-page > * {
+body.report-view #app > .app-shell > main.workspace > .report-page > * {
   width: 100% !important;
   max-width: none !important;
   margin-left: 0 !important;
@@ -7055,7 +7055,7 @@ body:not(.report-view) .live-frame.has-sources {
   position: absolute;
   left: 50%;
   top: 50%;
-  z-index: 2;
+  z-index: 4;
   width: clamp(22rem, 28vw, 26.5rem);
   margin: 0;
   transform: translate(-50%, -50%);
