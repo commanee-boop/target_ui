@@ -2206,7 +2206,24 @@ h2 {
 
 .filter-row label {
   display: flex;
+  align-items: center;
   gap: 0.4rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.filter-row .filter-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 1rem;
+  height: 1rem;
+  color: #82b7ff;
+  font-size: 0.86rem;
+  line-height: 1;
+}
+
+.filter-row label:first-child .filter-icon {
+  color: #9fd5ff;
 }
 
 input[type="checkbox"] {
@@ -2929,16 +2946,16 @@ button.snapshot {
   border-radius: 0.45rem;
 }
 
-.report-stat-icon::before {
+.report-stat-icon:not(.bi)::before {
   font-size: 1.15rem;
   line-height: 1;
   content: "▣";
 }
 
-.stat-video .report-stat-icon::before { content: "▻"; }
-.stat-image .report-stat-icon::before { content: "▧"; }
-.stat-detect .report-stat-icon::before { content: "◎"; }
-.stat-size .report-stat-icon::before { content: "▤"; }
+.stat-video .report-stat-icon:not(.bi)::before { content: "▻"; }
+.stat-image .report-stat-icon:not(.bi)::before { content: "▧"; }
+.stat-detect .report-stat-icon:not(.bi)::before { content: "◎"; }
+.stat-size .report-stat-icon:not(.bi)::before { content: "▤"; }
 
 .stat-detect .report-stat-icon,
 .stat-detect strong {
@@ -6811,4 +6828,660 @@ body:not(.report-view) .live-frame.has-sources {
   border-radius: 0.1rem;
   content: "";
   transform: translate(-50%, -50%);
+}
+
+/* Larger, easier-to-read target summary cards. */
+.summary-panel .metric,
+.summary-lane .metric {
+  grid-template-columns: 2.15rem minmax(0, 1fr) minmax(2.55rem, auto);
+  min-height: 3.25rem;
+  column-gap: 0.62rem;
+  padding: 0.52rem 0.68rem;
+}
+
+.summary-panel .metric::before,
+.summary-lane .metric::before {
+  width: 1.92rem;
+  height: 1.92rem;
+  border-radius: 0.42rem;
+}
+
+.summary-panel .metric span,
+.summary-lane .metric span {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.92rem;
+  font-weight: 850;
+  line-height: 1.08;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.summary-panel .metric small,
+.summary-lane .metric small {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.84rem;
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.summary-panel .metric strong,
+.summary-lane .metric strong {
+  min-width: 2.35rem;
+  font-size: clamp(1.48rem, 1.28vw, 1.72rem);
+  font-weight: 900;
+  line-height: 1;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.summary-panel .metric.total strong,
+.summary-lane .metric.total strong {
+  min-width: 2.68rem;
+  font-size: clamp(1.56rem, 1.4vw, 1.9rem);
+}
+
+@media (max-width: 1380px) {
+  .summary-panel .metric,
+  .summary-lane .metric {
+    grid-template-columns: 1.9rem minmax(0, 1fr) minmax(2.15rem, auto);
+    min-height: 2.96rem;
+    column-gap: 0.48rem;
+    padding: 0.44rem 0.52rem;
+  }
+
+  .summary-panel .metric::before,
+  .summary-lane .metric::before {
+    width: 1.66rem;
+    height: 1.66rem;
+  }
+
+  .summary-panel .metric span,
+  .summary-lane .metric span {
+    font-size: 0.82rem;
+  }
+
+  .summary-panel .metric small,
+  .summary-lane .metric small {
+    font-size: 0.74rem;
+  }
+
+  .summary-panel .metric strong,
+  .summary-lane .metric strong {
+    min-width: 2.12rem;
+    font-size: clamp(1.3rem, 1.18vw, 1.5rem);
+  }
+}
+
+@media (max-width: 1120px) {
+  .summary-panel .metric,
+  .summary-lane .metric {
+    grid-template-columns: 1.72rem minmax(0, 1fr);
+    grid-template-areas:
+      "icon value"
+      "icon label";
+    min-height: 2.86rem;
+  }
+
+  .summary-panel .metric strong,
+  .summary-lane .metric strong {
+    font-size: 1.28rem;
+  }
+}
+
+/* Bootstrap Icons cleanup: keep modern glyphs from overlapping legacy CSS icons. */
+.icon.bi,
+.tool-icon.bi,
+.control-icon.bi,
+.target-head-icon.bi,
+.theme-icon.bi,
+.play-icon.bi,
+.stop-action-icon.bi,
+.save-icon.bi,
+.report-stat-icon.bi,
+.live-status-icon.bi,
+.overlay-symbol.bi,
+.metric-bi.bi {
+  display: inline-grid;
+  place-items: center;
+  color: currentColor;
+  line-height: 1;
+}
+
+.icon.bi::before,
+.tool-icon.bi::before,
+.control-icon.bi::before,
+.target-head-icon.bi::before,
+.theme-icon.bi::before,
+.play-icon.bi::before,
+.stop-action-icon.bi::before,
+.save-icon.bi::before,
+.report-stat-icon.bi::before,
+.live-status-icon.bi::before,
+.overlay-symbol.bi::before,
+.metric-bi.bi::before {
+  position: static;
+  inset: auto;
+  width: auto;
+  height: auto;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  transform: none;
+}
+
+.theme-icon.bi::after,
+.target-head-icon.bi::after,
+.play-icon.bi::after,
+.stop-action-icon.bi::after,
+.save-icon.bi::after,
+.live-status-icon.bi::after,
+.overlay-symbol.bi::after,
+.icon-button:has(.bi)::before,
+.icon-button:has(.bi)::after,
+.save-confirm-icon:has(.bi)::before,
+.save-confirm-icon:has(.bi)::after,
+.delete-modal-icon:has(.bi)::before,
+.delete-modal-icon:has(.bi)::after {
+  display: none;
+}
+
+.summary-panel .metric:has(.metric-bi)::after,
+.summary-lane .metric:has(.metric-bi)::after {
+  display: none;
+}
+
+.metric .metric-bi {
+  grid-area: icon;
+  position: relative;
+  z-index: 1;
+  justify-self: center;
+  align-self: center;
+  width: 1.12rem;
+  height: 1.12rem;
+  font-size: 1rem;
+}
+
+.report-stat-icon.bi {
+  font-size: 1.18rem;
+}
+
+.live-status-icon.bi {
+  font-size: 1.18rem;
+}
+
+.target-head-icon.bi,
+.tools-mark .bi {
+  font-size: 1.15rem;
+}
+
+.play-icon.bi,
+.stop-action-icon.bi {
+  border: 0;
+}
+
+.stop-action-icon.bi {
+  font-size: 1.25rem;
+}
+
+.icon-button .bi {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/* Stable centered top tabs and vehicle glyph polish. */
+.topbar {
+  position: sticky;
+}
+
+.topbar > .top-menu {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 2;
+  width: clamp(22rem, 28vw, 26.5rem);
+  margin: 0;
+  transform: translate(-50%, -50%);
+}
+
+.topbar > .top-brand,
+.topbar > .operator-cluster {
+  position: relative;
+  z-index: 3;
+}
+
+.topbar > .operator-cluster {
+  margin-left: auto;
+}
+
+.top-menu-item {
+  grid-template-columns: 1.25rem minmax(0, auto);
+}
+
+.top-menu-item .bi {
+  justify-self: center;
+  font-size: 1.02rem;
+}
+
+.target-class-row {
+  grid-template-columns: 1.15rem 1.18rem minmax(0, 1fr) 1rem;
+}
+
+.target-type-icon {
+  display: grid;
+  place-items: center;
+  width: 1.18rem;
+  height: 1.18rem;
+  color: currentColor;
+  font-size: 0.92rem;
+  line-height: 1;
+}
+
+.target-class-row.is-muted .target-type-icon {
+  opacity: 0.74;
+}
+
+.report-tags em,
+.report-tag-stack em {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.24rem;
+}
+
+.report-tags em .bi,
+.report-tag-stack em .bi {
+  font-size: 0.7rem;
+  line-height: 1;
+}
+
+.report-metric-strip i.bi,
+.report-summary-mini i.bi {
+  display: grid;
+  place-items: center;
+  width: 1.2rem;
+  height: 1.2rem;
+  border: 0;
+  border-radius: 0;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.report-summary-mini span {
+  align-items: center;
+}
+
+@media (max-width: 1480px) {
+  .topbar > .top-menu {
+    width: 22rem;
+    flex: none;
+    margin: 0;
+  }
+
+  .topbar > .top-brand {
+    flex-basis: 25rem;
+  }
+}
+
+html {
+  scrollbar-gutter: stable;
+}
+
+/* Balanced report statistic cards. */
+.report-stat-grid {
+  grid-template-columns: repeat(5, minmax(11.5rem, 1fr));
+  gap: 0.85rem;
+}
+
+.report-stat-card {
+  grid-template-columns: 3.25rem minmax(0, 1fr);
+  gap: 0.8rem;
+  min-height: 5.35rem;
+  padding: 0.85rem 1rem;
+}
+
+.report-stat-card > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "label label"
+    "value unit";
+  align-items: baseline;
+  column-gap: 0.32rem;
+  row-gap: 0.18rem;
+  min-width: 0;
+}
+
+.report-stat-icon.bi {
+  width: 2.7rem;
+  height: 2.7rem;
+  border-radius: 0.5rem;
+  font-size: 1.22rem;
+}
+
+.report-stat-card > div > span {
+  grid-area: label;
+  overflow: hidden;
+  color: #8cc5dd;
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.report-stat-card > div > strong {
+  grid-area: value;
+  display: block;
+  margin: 0;
+  color: #77a8ff;
+  font-size: clamp(1.42rem, 1.65vw, 1.95rem);
+  font-weight: 900;
+  line-height: 0.98;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.report-stat-card > div > small {
+  grid-area: unit;
+  color: #8cc5dd;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.stat-detect strong {
+  color: var(--green);
+}
+
+.stat-size > div {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "label"
+    "value";
+}
+
+.stat-size strong {
+  color: var(--violet);
+}
+
+@media (max-width: 1480px) {
+  .report-stat-grid {
+    gap: 0.65rem;
+  }
+
+  .report-stat-card {
+    grid-template-columns: 2.9rem minmax(0, 1fr);
+    gap: 0.65rem;
+    min-height: 4.95rem;
+    padding: 0.72rem 0.82rem;
+  }
+
+  .report-stat-icon.bi {
+    width: 2.42rem;
+    height: 2.42rem;
+    font-size: 1.08rem;
+  }
+
+  .report-stat-card > div > span {
+    font-size: 0.76rem;
+  }
+
+  .report-stat-card > div > strong {
+    font-size: clamp(1.28rem, 1.55vw, 1.68rem);
+  }
+
+  .report-stat-card > div > small {
+    font-size: 0.72rem;
+  }
+}
+
+@media (max-width: 1180px) {
+  .report-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Center the Bootstrap sliders icon inside the tools mark. */
+.tools-mark .icon.bi {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 1;
+  transform: translate(-50%, -50%);
+}
+
+.tools-mark .icon.bi::before {
+  display: block;
+  line-height: 1;
+  transform: none;
+}
+
+/* Final icon proportion pass. */
+.theme-toggle .theme-icon.bi,
+body.theme-light .theme-toggle .theme-icon.bi {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: currentColor;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  font-size: 1.18rem;
+}
+
+.theme-toggle .theme-icon.bi::before,
+body.theme-light .theme-toggle .theme-icon.bi::before {
+  position: static;
+  inset: auto;
+  display: inline-block;
+  width: auto;
+  height: auto;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  transform: none;
+}
+
+.theme-toggle .theme-icon.bi::after,
+body.theme-light .theme-toggle .theme-icon.bi::after {
+  display: none;
+}
+
+.report-stat-card {
+  grid-template-columns: 3.05rem minmax(0, 1fr);
+  align-items: center;
+}
+
+.report-stat-icon.bi {
+  width: 2.55rem;
+  height: 2.55rem;
+  justify-self: center;
+  align-self: center;
+  color: #80b6ff;
+  background:
+    linear-gradient(180deg, rgba(47, 119, 241, 0.18), rgba(19, 67, 132, 0.2)),
+    rgba(6, 25, 42, 0.72);
+  border-color: rgba(95, 162, 255, 0.34);
+  border-radius: 0.48rem;
+  font-size: 1.18rem;
+}
+
+.report-stat-icon.bi::before {
+  display: block;
+  transform: translateY(0.01rem);
+}
+
+.stat-files .report-stat-icon.bi,
+.stat-video .report-stat-icon.bi,
+.stat-image .report-stat-icon.bi {
+  color: #7db7ff;
+}
+
+.stat-detect .report-stat-icon.bi {
+  color: var(--green);
+  background:
+    linear-gradient(180deg, rgba(103, 216, 107, 0.17), rgba(28, 98, 60, 0.18)),
+    rgba(6, 32, 30, 0.68);
+  border-color: rgba(103, 216, 107, 0.32);
+}
+
+.stat-size .report-stat-icon.bi {
+  color: var(--violet);
+  background:
+    linear-gradient(180deg, rgba(154, 109, 245, 0.17), rgba(75, 48, 135, 0.18)),
+    rgba(21, 18, 42, 0.68);
+  border-color: rgba(154, 109, 245, 0.32);
+}
+
+.report-stat-card > div {
+  row-gap: 0.12rem;
+}
+
+.report-stat-card > div > span {
+  align-self: end;
+}
+
+.report-stat-card > div > strong {
+  align-self: start;
+}
+
+@media (max-width: 1480px) {
+  .report-stat-card {
+    grid-template-columns: 2.75rem minmax(0, 1fr);
+  }
+
+  .report-stat-icon.bi {
+    width: 2.28rem;
+    height: 2.28rem;
+    font-size: 1.04rem;
+  }
+}
+
+@media (max-width: 1180px) {
+  .topbar > .top-menu {
+    position: static;
+    width: 100%;
+    transform: none;
+  }
+}
+
+/* Tighten report stat card rhythm: icon, label, number and unit read as one group. */
+.report-stat-card {
+  grid-template-columns: 2.95rem minmax(0, 1fr);
+  gap: 0.95rem;
+  padding-inline: 1.05rem;
+}
+
+.report-stat-card > div {
+  grid-template-columns: auto auto;
+  grid-template-areas:
+    "label label"
+    "value unit";
+  justify-content: start;
+  align-content: center;
+  align-items: end;
+  column-gap: 0.42rem;
+  row-gap: 0.14rem;
+}
+
+.report-stat-card > div > span {
+  margin-bottom: 0.05rem;
+}
+
+.report-stat-card > div > strong {
+  line-height: 0.92;
+}
+
+.report-stat-card > div > small {
+  align-self: end;
+  padding-bottom: 0.16rem;
+}
+
+.stat-size > div {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (max-width: 1480px) {
+  .report-stat-card {
+    grid-template-columns: 2.62rem minmax(0, 1fr);
+    gap: 0.78rem;
+    padding-inline: 0.9rem;
+  }
+
+  .report-stat-card > div {
+    column-gap: 0.34rem;
+  }
+}
+
+/* Precisely center vehicle icons inside metric badges. */
+.metric:has(.metric-bi) {
+  position: relative;
+}
+
+.metric .metric-bi {
+  position: absolute;
+  left: calc(0.52rem + 0.96rem);
+  top: 50%;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 1.18rem;
+  height: 1.18rem;
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1;
+  transform: translate(-50%, -50%);
+}
+
+.metric .metric-bi::before {
+  display: block;
+  line-height: 1;
+  transform: none;
+}
+
+@media (max-width: 1480px) {
+  .metric .metric-bi {
+    left: calc(0.44rem + 0.83rem);
+    font-size: 0.92rem;
+  }
+}
+
+/* Align metric glyphs to the same grid cell as their badge frame. */
+.summary-panel .metric .metric-bi,
+.summary-lane .metric .metric-bi,
+.metric .metric-bi {
+  position: relative;
+  left: auto;
+  top: auto;
+  grid-area: icon;
+  justify-self: center;
+  align-self: center;
+  width: 1.16rem;
+  height: 1.16rem;
+  margin: 0;
+  transform: none;
+}
+
+.summary-panel .metric .metric-bi::before,
+.summary-lane .metric .metric-bi::before,
+.metric .metric-bi::before {
+  display: block;
+  line-height: 1;
+  vertical-align: middle;
+  transform: none;
 }

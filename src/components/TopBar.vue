@@ -16,7 +16,7 @@
         aria-label="ตรวจจับเป้าหมาย"
         @click="$emit('set-view', 'detect')"
       >
-        <span class="icon target-menu"></span>
+        <span class="icon bi bi-crosshair2"></span>
         <span>ตรวจจับเป้าหมาย</span>
       </button>
       <button
@@ -26,7 +26,7 @@
         aria-label="รายงานบันทึกข้อมูล"
         @click="$emit('set-view', 'report')"
       >
-        <span class="icon report"></span>
+        <span class="icon bi bi-clipboard-data"></span>
         <span>รายงานบันทึกข้อมูล</span>
       </button>
     </div>
@@ -41,7 +41,7 @@
         :aria-pressed="theme === 'light'"
         @click="$emit('toggle-theme')"
       >
-        <span class="theme-icon" aria-hidden="true"></span>
+        <span class="theme-icon bi" :class="theme === 'light' ? 'bi-moon-stars-fill' : 'bi-brightness-high-fill'" aria-hidden="true"></span>
       </button>
       <div class="clock">
         <span id="clockDate">{{ clockDate }}</span>
@@ -59,7 +59,7 @@
         </div>
       </div>
       <button class="logout-button" title="Logout" aria-label="Logout">
-        <span class="icon logout"></span>
+        <span class="icon bi bi-box-arrow-right"></span>
         <span>Logout</span>
       </button>
     </div>

@@ -1,7 +1,7 @@
 <template>
   <article class="sidebar-tools" aria-label="Target configuration tools">
     <div class="tools-title">
-      <span class="tools-mark"><span class="icon sliders"></span></span>
+      <span class="tools-mark"><span class="icon bi bi-sliders2"></span></span>
       <div>
         <strong>Target Configuration</strong>
         <span>Input and detection setup</span>
@@ -15,7 +15,7 @@
         aria-label="Clear input data"
         @click="$emit('clear-input')"
       >
-        <span class="tool-icon eraser"></span>
+        <span class="tool-icon bi bi-eraser"></span>
       </button>
       <button
         class="tool-action reset-page"
@@ -24,7 +24,7 @@
         aria-label="Reset all data"
         @click="$emit('reset-page')"
       >
-        <span class="tool-icon refresh"></span>
+        <span class="tool-icon bi bi-arrow-clockwise"></span>
       </button>
       <button
         class="tool-action collapse-menu"
@@ -34,7 +34,7 @@
         :aria-label="collapsed ? 'Expand sidebar' : 'Collapse sidebar'"
         @click.prevent.stop="$emit('toggle-sidebar')"
       >
-        <span class="tool-icon chevron"></span>
+        <span class="tool-icon bi bi-chevron-left"></span>
       </button>
     </div>
   </article>

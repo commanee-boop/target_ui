@@ -1,7 +1,7 @@
 <template>
   <article class="panel step-panel target-panel target-class-panel">
     <button class="target-class-head" type="button" :aria-expanded="!collapsed" @click="$emit('toggle-collapsed')">
-      <span class="target-head-icon"></span>
+      <span class="target-head-icon bi bi-bullseye"></span>
       <strong>TARGET CLASSES</strong>
       <span class="target-head-chevron"></span>
     </button>
@@ -16,6 +16,7 @@
         @click="$emit('select-target', 'ALL')"
       >
         <span class="target-check" aria-hidden="true"></span>
+        <span class="target-type-icon bi bi-grid-3x3-gap-fill" aria-hidden="true"></span>
         <span class="target-class-copy">SELECT ALL</span>
         <span class="target-class-action"></span>
       </button>
@@ -31,6 +32,7 @@
         @click="$emit('select-target', target.id)"
       >
         <span class="target-check" aria-hidden="true"></span>
+        <span class="target-type-icon bi" :class="targetTypeIconClass(target.id)" aria-hidden="true"></span>
         <span class="target-class-copy">
           <strong>{{ target.id }}</strong>
           <small>{{ target.detail }}</small>
@@ -62,6 +64,17 @@ export default {
       required: true
     }
   },
-  emits: ["select-target", "toggle-collapsed"]
+  emits: ["select-target", "toggle-collapsed"],
+  methods: {
+    targetTypeIconClass(type) {
+      return {
+        AMV: "bi-bus-front-fill",
+        LMV: "bi-car-front-fill",
+        AFV: "bi-shield-shaded",
+        CV: "bi-truck-front",
+        MCV: "bi-truck-flatbed"
+      }[type] || "bi-car-front";
+    }
+  }
 };
 </script>

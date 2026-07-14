@@ -20,11 +20,11 @@
       </div>
     </div>
     <button id="startBtn" class="primary-action" :class="{ 'is-running': running }" @click="$emit('toggle-running')">
-      <span class="play-icon"></span>
+      <span class="play-icon bi bi-play-fill"></span>
       <strong>{{ running ? 'Detecting...' : 'Start Detection' }}</strong>
     </button>
     <button class="stop-action" type="button" :disabled="!running" @click="$emit('stop-detection')">
-      <span class="stop-action-icon"></span>
+      <span class="stop-action-icon bi bi-stop-fill"></span>
       <strong>Stop Detection</strong>
     </button>
   </article>
