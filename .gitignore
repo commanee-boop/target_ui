@@ -3,4 +3,8 @@ live-server.err
 live-server.log
 node_modules/
 dist/
+.backups/
+.deploy-pages/
+vite-start.err
+vite-start.log
 *.tar
