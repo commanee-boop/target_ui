@@ -305,12 +305,12 @@
                 </div>
               </div>
               <div class="filter-row">
-                <label><input type="checkbox" checked /> ทั้งหมด</label>
-                <label><input type="checkbox" checked /> AMV</label>
-                <label><input type="checkbox" checked /> LMV</label>
-                <label><input type="checkbox" checked /> AFV</label>
-                <label><input type="checkbox" checked /> CV</label>
-                <label><input type="checkbox" checked /> MCV</label>
+                <label><input type="checkbox" checked /><span class="bi bi-list-check"></span><span>ทั้งหมด</span></label>
+                <label><input type="checkbox" checked /><span class="bi" :class="targetTypeIconClass('AMV')"></span><span>AMV</span></label>
+                <label><input type="checkbox" checked /><span class="bi" :class="targetTypeIconClass('LMV')"></span><span>LMV</span></label>
+                <label><input type="checkbox" checked /><span class="bi" :class="targetTypeIconClass('AFV')"></span><span>AFV</span></label>
+                <label><input type="checkbox" checked /><span class="bi" :class="targetTypeIconClass('CV')"></span><span>CV</span></label>
+                <label><input type="checkbox" checked /><span class="bi" :class="targetTypeIconClass('MCV')"></span><span>MCV</span></label>
               </div>
             </article>
           </div>
@@ -1114,7 +1114,7 @@ export default {
       if (isReport) {
         appShell.style.display = "block";
         appShell.style.gridTemplateColumns = "1fr";
-        appShell.style.width = "100vw";
+        appShell.style.width = "100%";
         appShell.style.maxWidth = "none";
         appShell.style.margin = "0";
         appShell.style.padding = "0";
@@ -1127,7 +1127,7 @@ export default {
 
         workspace.style.display = "block";
         workspace.style.gridColumn = "1 / -1";
-        workspace.style.width = "100vw";
+        workspace.style.width = "100%";
         workspace.style.maxWidth = "none";
         workspace.style.margin = "0";
         workspace.style.padding = "1rem 1rem 1.35rem";

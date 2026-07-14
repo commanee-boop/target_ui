@@ -4454,7 +4454,7 @@ body {
 
 body.report-view #app.app-shell {
   display: block !important;
-  width: 100vw !important;
+  width: 100% !important;
   max-width: none !important;
   margin: 0 !important;
   padding: 0 !important;
@@ -4469,7 +4469,7 @@ body.report-view #app.app-shell > .sidebar {
 body.report-view #app.app-shell > main.workspace {
   display: block !important;
   box-sizing: border-box;
-  width: 100vw !important;
+  width: 100% !important;
   max-width: none !important;
   margin: 0 !important;
   padding: 1rem 1rem 1.35rem !important;
@@ -7152,5 +7152,156 @@ body:not(.report-view) .live-frame.has-sources {
   .summary-lane .metric strong {
     min-width: 2rem;
     font-size: clamp(1.18rem, 1.1vw, 1.38rem);
+  }
+}
+
+/* Enlarged summary numbers and timeline filters. */
+.summary-lanes {
+  grid-auto-columns: minmax(40rem, 1fr);
+}
+
+.summary-lane .metric-grid {
+  grid-template-columns: repeat(6, minmax(6.75rem, 1fr));
+  gap: 0.45rem;
+  overflow-x: auto;
+}
+
+.summary-panel .metric,
+.summary-lane .metric {
+  grid-template-columns: 2.75rem minmax(0, 1fr) minmax(3rem, auto);
+  min-height: 4rem;
+  column-gap: 0.64rem;
+  padding: 0.58rem 0.72rem;
+}
+
+.summary-panel .metric::before,
+.summary-lane .metric::before {
+  justify-self: center;
+  align-self: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 0.48rem;
+}
+
+.summary-panel .metric .metric-summary-icon,
+.summary-lane .metric .metric-summary-icon {
+  justify-self: center;
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: 1.55rem;
+  height: 1.55rem;
+  font-size: 1.42rem;
+  line-height: 1;
+  text-align: center;
+  transform: translateY(0);
+}
+
+.summary-panel .metric span:not(.metric-summary-icon),
+.summary-lane .metric span:not(.metric-summary-icon) {
+  font-size: 1.05rem;
+  line-height: 1.08;
+}
+
+.summary-panel .metric small,
+.summary-lane .metric small {
+  font-size: 0.95rem;
+  line-height: 1.08;
+}
+
+.summary-panel .metric strong,
+.summary-lane .metric strong {
+  min-width: 2.8rem;
+  font-size: clamp(1.82rem, 1.58vw, 2.28rem);
+}
+
+.summary-panel .metric.total strong,
+.summary-lane .metric.total strong {
+  min-width: 3.05rem;
+  font-size: clamp(1.95rem, 1.72vw, 2.44rem);
+}
+
+.filter-row {
+  gap: 0.85rem;
+  padding: 0.78rem 0.9rem 0.05rem;
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+
+.filter-row label {
+  align-items: center;
+  gap: 0.45rem;
+  line-height: 1;
+}
+
+.filter-row input[type="checkbox"] {
+  width: 1.08rem;
+  height: 1.08rem;
+  flex: 0 0 auto;
+}
+
+.filter-row .bi {
+  width: 1.22rem;
+  height: 1.22rem;
+  color: #9ed4ff;
+  font-size: 1.08rem;
+}
+
+.filter-row label:nth-child(2) .bi { color: #67d86b; }
+.filter-row label:nth-child(3) .bi { color: #668dff; }
+.filter-row label:nth-child(4) .bi { color: #e9ba55; }
+.filter-row label:nth-child(5) .bi { color: #9a6df5; }
+.filter-row label:nth-child(6) .bi { color: #35d0d0; }
+
+@media (max-width: 1380px) {
+  .summary-lane .metric-grid {
+    grid-template-columns: repeat(6, minmax(8.25rem, 1fr));
+  }
+
+  .summary-panel .metric,
+  .summary-lane .metric {
+    grid-template-columns: 2.45rem minmax(0, 1fr) minmax(2.65rem, auto);
+    min-height: 3.62rem;
+    column-gap: 0.52rem;
+    padding: 0.5rem 0.62rem;
+  }
+
+  .summary-panel .metric::before,
+  .summary-lane .metric::before {
+    width: 2.08rem;
+    height: 2.08rem;
+  }
+
+  .summary-panel .metric .metric-summary-icon,
+  .summary-lane .metric .metric-summary-icon {
+    width: 1.36rem;
+    height: 1.36rem;
+    font-size: 1.24rem;
+  }
+
+  .summary-panel .metric span:not(.metric-summary-icon),
+  .summary-lane .metric span:not(.metric-summary-icon) {
+    font-size: 0.95rem;
+  }
+
+  .summary-panel .metric small,
+  .summary-lane .metric small {
+    font-size: 0.86rem;
+  }
+
+  .summary-panel .metric strong,
+  .summary-lane .metric strong {
+    min-width: 2.55rem;
+    font-size: clamp(1.62rem, 1.44vw, 2rem);
+  }
+
+  .summary-panel .metric.total strong,
+  .summary-lane .metric.total strong {
+    min-width: 2.75rem;
+    font-size: clamp(1.74rem, 1.56vw, 2.12rem);
+  }
+
+  .filter-row {
+    font-size: 0.6rem;
   }
 }
