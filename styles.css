@@ -3248,7 +3248,7 @@ button.snapshot {
 
 .report-metric-strip {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.35rem;
 }
 
@@ -7709,5 +7709,104 @@ body.theme-light .theme-toggle .theme-icon.bi::after {
 
   .summary-panel .summary-lane .metric.total .metric-label {
     font-size: 0.72rem;
+  }
+}
+
+/* Keep the detection summary metrics on one row, including the total. */
+.summary-panel .summary-lanes {
+  overflow-x: auto;
+}
+
+.summary-panel .summary-lane {
+  min-width: 0;
+}
+
+.summary-panel .summary-lane .metric-grid {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.28rem;
+  min-width: 0;
+  overflow-x: visible;
+}
+
+.summary-panel .summary-lane .metric {
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "icon"
+    "label"
+    "value";
+  justify-items: center;
+  align-content: center;
+  min-width: 0;
+  min-height: 3.6rem;
+  padding: 0.42rem 0.22rem;
+  row-gap: 0.14rem;
+  column-gap: 0;
+}
+
+.summary-panel .summary-lane .metric .metric-bi {
+  width: 1.08rem;
+  height: 1.08rem;
+}
+
+.summary-panel .summary-lane .metric .metric-label {
+  max-width: 100%;
+  font-size: clamp(0.52rem, 1.6vw, 0.74rem);
+  line-height: 1;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.summary-panel .summary-lane .metric strong {
+  justify-self: center;
+  min-width: 0;
+  font-size: clamp(0.78rem, 2vw, 1rem);
+  line-height: 1;
+  text-align: center;
+}
+
+.summary-panel .summary-lane .metric.total .metric-label {
+  font-size: clamp(0.46rem, 1.45vw, 0.66rem);
+}
+
+/* Put the report-detail total metric in the same row as every target class. */
+.report-summary-panel {
+  overflow-x: auto;
+}
+
+.report-summary-mini {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.28rem;
+  min-width: 0;
+}
+
+.report-summary-mini span {
+  min-height: 3.25rem;
+  padding: 0.42rem 0.18rem;
+}
+
+.report-summary-mini i.bi {
+  width: 1rem;
+  height: 1rem;
+  font-size: 0.86rem;
+}
+
+.report-summary-mini small {
+  max-width: 100%;
+  font-size: clamp(0.48rem, 1.5vw, 0.66rem);
+  line-height: 1;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.report-summary-mini strong {
+  font-size: clamp(0.76rem, 1.8vw, 0.96rem);
+}
+
+@media (max-width: 760px) {
+  .report-summary-mini {
+    grid-template-columns: repeat(7, minmax(3.45rem, 1fr));
+    min-width: 25rem;
   }
 }
