@@ -193,14 +193,14 @@
                     <span>{{ group.source.label }}</span>
                   </div>
                   <div class="metric-grid">
-                    <div v-for="type in targetTypes" :key="`source-${group.source.id}-${type}`" class="metric" :class="type.toLowerCase()"><span class="metric-bi bi" :class="targetTypeIconClass(type)"></span><span>{{ type }}</span><strong>{{ group.metrics[type] }}</strong></div>
-                    <div class="metric total"><span class="metric-bi bi bi-grid-3x3-gap-fill"></span><span>Total</span><strong>{{ group.total }}</strong><small>Targets</small></div>
+                    <div v-for="type in targetTypes" :key="`source-${group.source.id}-${type}`" class="metric" :class="type.toLowerCase()"><span class="metric-bi bi" :class="targetTypeIconClass(type)"></span><span class="metric-label">{{ type }}</span><strong>{{ group.metrics[type] }}</strong></div>
+                    <div class="metric total"><span class="metric-bi bi bi-grid-3x3-gap-fill"></span><span class="metric-label">Total Targets</span><strong>{{ group.total }}</strong></div>
                   </div>
                 </div>
               </div>
               <div class="metric-grid legacy-metric-grid">
-                <div v-for="type in targetTypes" :key="`legacy-${type}`" class="metric" :class="type.toLowerCase()"><span class="metric-bi bi" :class="targetTypeIconClass(type)"></span><span>{{ type }}</span><strong>{{ metrics[type] }}</strong></div>
-                <div class="metric total"><span class="metric-bi bi bi-grid-3x3-gap-fill"></span><span>รวมทั้งหมด</span><strong id="totalCount">{{ totalCount }}</strong><small>เป้าหมาย</small></div>
+                <div v-for="type in targetTypes" :key="`legacy-${type}`" class="metric" :class="type.toLowerCase()"><span class="metric-bi bi" :class="targetTypeIconClass(type)"></span><span class="metric-label">{{ type }}</span><strong>{{ metrics[type] }}</strong></div>
+                <div class="metric total"><span class="metric-bi bi bi-grid-3x3-gap-fill"></span><span class="metric-label">รวมทั้งหมด</span><strong id="totalCount">{{ totalCount }}</strong></div>
               </div>
             </article>
 
@@ -252,8 +252,6 @@
                 <span class="box b4">AFV</span>
                 <span class="box b5">AMV</span>
                 <div class="live-overlay-menu" aria-label="Live view tools">
-                  <button type="button" title="Zoom in" aria-label="Zoom in"><span class="overlay-symbol bi bi-zoom-in"></span></button>
-                  <button type="button" title="Zoom out" aria-label="Zoom out"><span class="overlay-symbol bi bi-zoom-out"></span></button>
                   <button type="button" title="Capture image" aria-label="Capture image"><span class="icon bi bi-camera"></span></button>
                   <button type="button" :title="fullscreenActive ? 'Exit fullscreen' : 'Fullscreen'" :aria-label="fullscreenActive ? 'Exit fullscreen' : 'Fullscreen'" @click.stop="toggleFullscreen"><span class="icon bi" :class="fullscreenActive ? 'bi-fullscreen-exit' : 'bi-fullscreen'"></span></button>
                 </div>
@@ -263,17 +261,15 @@
                 </div>
               </div>
               <div class="video-bar">
-                <button title="หยุดชั่วคราว" aria-label="หยุดชั่วคราว" class="pause-bars"></button>
                 <button title="ย้อนกลับ" aria-label="ย้อนกลับ"><span class="icon bi bi-skip-backward-fill"></span></button>
                 <button title="เล่น" aria-label="เล่น"><span class="icon bi bi-play-fill"></span></button>
-                <button title="เสียง" aria-label="เสียง"><span class="icon bi bi-volume-up-fill"></span></button>
                 <button title="ถัดไป" aria-label="ถัดไป"><span class="control-icon bi bi-skip-forward-fill"></span></button>
+                <button title="หยุดชั่วคราว" aria-label="หยุดชั่วคราว" class="pause-bars"></button>
                 <button title="หยุด" aria-label="หยุด"><span class="control-icon bi bi-stop-fill"></span></button>
                 <button title="เริ่มต้นใหม่" aria-label="เริ่มต้นใหม่"><span class="control-icon bi bi-arrow-clockwise"></span></button>
                 <div class="progress"><span></span></div>
                 <time>00:01:24 / 00:10:00</time>
                 <button title="จับภาพ" aria-label="จับภาพ"><span class="icon bi bi-camera"></span></button>
-                <button type="button" :title="fullscreenActive ? 'Exit fullscreen' : 'Fullscreen'" :aria-label="fullscreenActive ? 'Exit fullscreen' : 'Fullscreen'" @click="toggleFullscreen"><span class="icon bi" :class="fullscreenActive ? 'bi-fullscreen-exit' : 'bi-fullscreen'"></span></button>
                 <button class="speed">1.0x</button>
               </div>
             </article>
@@ -413,7 +409,8 @@
               <div class="report-table-head">
                 <label><input type="checkbox" :checked="allVisibleReportsSelected" @change="toggleVisibleReportSelection" /></label>
                 <span class="report-bulk-menu" aria-label="Bulk report actions">
-                  <button type="button" class="icon-button download" title="ดาวน์โหลดรายการที่เลือก" aria-label="ดาวน์โหลดรายการที่เลือก" :disabled="!selectedReportRecords.length" @click="downloadSelectedReports"><span class="bi bi-download"></span></button>
+                  <button type="button" class="icon-button export-word" title="Export selected to Word" aria-label="Export selected to Word" :disabled="!selectedReportRecords.length" @click="exportSelectedReports('word')"><span class="bi bi-file-earmark-word"></span></button>
+                  <button type="button" class="icon-button export-pdf" title="Export selected to PDF" aria-label="Export selected to PDF" :disabled="!selectedReportRecords.length" @click="exportSelectedReports('pdf')"><span class="bi bi-file-earmark-pdf"></span></button>
                   <button type="button" class="icon-button delete" title="ลบรายการที่เลือก" aria-label="ลบรายการที่เลือก" :disabled="!selectedReportRecords.length" @click="deleteSelectedReports"><span class="bi bi-trash3"></span></button>
                 </span>
                 <span>ตัวอย่าง</span>
@@ -448,7 +445,8 @@
                 <span class="report-size-cell">{{ record.size }}</span>
                 <span class="report-action-buttons">
                   <span class="icon-button view" title="ดูข้อมูล" aria-label="ดูข้อมูล" @click.stop="viewReport(record)"><span class="bi bi-eye"></span></span>
-                  <span class="icon-button download" title="ดาวน์โหลด" aria-label="ดาวน์โหลด" @click.stop="downloadReport(record)"><span class="bi bi-download"></span></span>
+                  <span class="icon-button export-word" title="Export Word" aria-label="Export Word" @click.stop="exportReport(record, 'word')"><span class="bi bi-file-earmark-word"></span></span>
+                  <span class="icon-button export-pdf" title="Export PDF" aria-label="Export PDF" @click.stop="exportReport(record, 'pdf')"><span class="bi bi-file-earmark-pdf"></span></span>
                   <span class="icon-button delete" title="ลบ" aria-label="ลบ" @click.stop="deleteReport(record)"><span class="bi bi-trash3"></span></span>
                 </span>
               </button>
@@ -1510,40 +1508,588 @@ export default {
       this.selectReport(record);
       this.reportNotice = `เปิดดูรายละเอียด ${record.name}.${record.ext.toLowerCase()}`;
     },
+    async exportReport(record, format) {
+      await this.exportReports([record], format, record.name);
+    },
+    async exportSelectedReports(format) {
+      if (!this.selectedReportRecords.length) return;
+      await this.exportReports(
+        this.selectedReportRecords,
+        format,
+        `selected_reports_${this.selectedReportRecords.length}`
+      );
+    },
     downloadReport(record) {
-      const payload = [
-        `Report: ${record.name}.${record.ext.toLowerCase()}`,
-        `Source: ${record.source}`,
-        `Date: ${record.date} ${record.time}`,
-        `Targets: ${record.tags.join(", ") || "-"}`,
-        `Detections: ${Object.entries(record.metrics).map(([key, value]) => `${key}=${value}`).join(", ")}`
-      ].join("\n");
-      const blob = new Blob([payload], { type: "text/plain;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `${record.name}_report.txt`;
-      link.click();
-      URL.revokeObjectURL(url);
-      this.reportNotice = `ดาวน์โหลดรายงาน ${record.name} แล้ว`;
+      this.exportReport(record, "word");
     },
     downloadSelectedReports() {
-      if (!this.selectedReportRecords.length) return;
-      const payload = this.selectedReportRecords.map((record, index) => [
-        `#${index + 1} ${record.name}.${record.ext.toLowerCase()}`,
-        `Source: ${record.source}`,
-        `Date: ${record.date} ${record.time}`,
-        `Targets: ${record.tags.join(", ") || "-"}`,
-        `Detections: ${Object.entries(record.metrics).map(([key, value]) => `${key}=${value}`).join(", ")}`
-      ].join("\n")).join("\n\n");
-      const blob = new Blob([payload], { type: "text/plain;charset=utf-8" });
+      this.exportSelectedReports("word");
+    },
+    async exportReports(records, format, baseName = "detection_reports") {
+      if (!records.length) return;
+
+      const title = records.length === 1
+        ? `Detection Report - ${records[0].name}`
+        : `Detection Reports - ${records.length} items`;
+      const safeName = this.sanitizeExportFileName(baseName);
+
+      if (format === "pdf") {
+        await this.downloadPdfReports(records, title, safeName);
+        this.reportNotice = `Export PDF ${records.length} รายการแล้ว`;
+        return;
+      }
+
+      const html = await this.buildReportExportHtml(records, title);
+
+      if (format === "word") {
+        this.downloadBlob(
+          `\ufeff${html}`,
+          `${safeName}_report.doc`,
+          "application/msword;charset=utf-8"
+        );
+        this.reportNotice = `Export Word ${records.length} รายการแล้ว`;
+        return;
+      }
+
+      await this.downloadPdfReports(records, title, safeName);
+      this.reportNotice = `Export PDF ${records.length} รายการแล้ว`;
+    },
+    async downloadPdfReports(records, title, safeName) {
+      const pages = await Promise.all(records.map((record, index) => this.buildPdfReportPage(record, title, index + 1, records.length)));
+      const pdfBytes = this.createPdfFromJpegPages(pages);
+      const blob = new Blob([pdfBytes], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `selected_reports_${this.selectedReportRecords.length}.txt`;
+      link.download = `${safeName}_report.pdf`;
+      document.body.appendChild(link);
       link.click();
+      link.remove();
       URL.revokeObjectURL(url);
-      this.reportNotice = `ดาวน์โหลด ${this.selectedReportRecords.length} รายการที่เลือกแล้ว`;
+    },
+    async buildPdfReportPage(record, title, pageNumber, totalPages) {
+      await this.ensureExportFontsLoaded();
+      const imageSrc = await this.getReportExportImageSrc(record);
+      const image = await this.loadExportImage(imageSrc);
+      const canvas = document.createElement("canvas");
+      const width = 1240;
+      const height = 1754;
+      canvas.width = width;
+      canvas.height = height;
+
+      const context = canvas.getContext("2d");
+      context.fillStyle = "#ffffff";
+      context.fillRect(0, 0, width, height);
+
+      let y = 68;
+      context.fillStyle = "#102638";
+      context.font = `700 42px "TH Sarabun New"`;
+      context.fillText(totalPages > 1 ? `${title} - ${pageNumber}` : title, 70, y);
+
+      y += 40;
+      const imageX = 70;
+      const imageW = 1100;
+      const imageH = Math.round(imageW * (image.height / image.width));
+      context.drawImage(image, imageX, y, imageW, imageH);
+      context.strokeStyle = "#b9cbd6";
+      context.lineWidth = 2;
+      context.strokeRect(imageX, y, imageW, imageH);
+
+      y += imageH + 44;
+      context.fillStyle = "#102638";
+      context.font = `700 36px "TH Sarabun New"`;
+      context.fillText(`${record.name}.${String(record.ext).toLowerCase()}`, 70, y);
+      context.fillStyle = "#1672a6";
+      context.font = `400 30px "TH Sarabun New"`;
+      context.fillText(record.source || "-", 70, y + 34);
+
+      y += 74;
+      this.drawPdfSectionTitle(context, 70, y, 1100, "รายละเอียดไฟล์");
+      y += 52;
+      this.drawPdfInfoTable(context, 70, y, 1100, [
+        ["ประเภทไฟล์", record.ext, "ความยาววิดีโอ", record.duration],
+        ["วันที่ / เวลา", `${record.date} ${record.time}`, "ขนาดไฟล์", record.size],
+        ["ความละเอียด", record.resolution, "FPS", record.fps],
+        ["ผู้บันทึก", record.recorder, "หมายเหตุ", "-"]
+      ]);
+
+      y += 292;
+      this.drawPdfSectionTitle(context, 70, y, 1100, "สรุปผลตรวจจับ");
+      y += 48;
+      this.drawPdfSummaryTable(context, 70, y, 1100, record);
+
+      return this.jpegDataUrlToPage(canvas.toDataURL("image/jpeg", 0.92));
+    },
+    drawPdfSectionTitle(context, x, y, width, title) {
+      context.fillStyle = "#102638";
+      context.font = `700 34px "TH Sarabun New"`;
+      context.fillText(title, x, y);
+      context.strokeStyle = "#234d64";
+      context.lineWidth = 4;
+      context.beginPath();
+      context.moveTo(x, y + 14);
+      context.lineTo(x + width, y + 14);
+      context.stroke();
+    },
+    drawPdfInfoTable(context, x, y, width, rows) {
+      const rowHeight = 62;
+      const colWidths = [235, 315, 235, 315];
+
+      rows.forEach((row, rowIndex) => {
+        let cellX = x;
+        row.forEach((value, colIndex) => {
+          const cellWidth = colWidths[colIndex];
+          const isHeader = colIndex % 2 === 0;
+          context.fillStyle = isHeader ? "#234d64" : (rowIndex % 2 === 0 ? "#f8fbfd" : "#eef5f9");
+          context.fillRect(cellX, y + rowIndex * rowHeight, cellWidth, rowHeight);
+          context.strokeStyle = "#bfd0da";
+          context.lineWidth = 2;
+          context.strokeRect(cellX, y + rowIndex * rowHeight, cellWidth, rowHeight);
+          context.fillStyle = isHeader ? "#ffffff" : "#102638";
+          context.font = `700 ${isHeader ? 27 : 29}px "TH Sarabun New"`;
+          context.textAlign = "left";
+          context.fillText(String(value ?? "-"), cellX + 18, y + rowIndex * rowHeight + 41);
+          cellX += cellWidth;
+        });
+      });
+    },
+    drawPdfSummaryTable(context, x, y, width, record) {
+      const labels = [...this.targetTypes, "รวมทั้งหมด"];
+      const values = [
+        ...this.targetTypes.map((type) => record.metrics[type] ?? 0),
+        Object.values(record.metrics).reduce((sum, value) => sum + (Number(value) || 0), 0)
+      ];
+      const cellWidth = width / labels.length;
+      const rowHeight = 66;
+
+      context.font = `700 26px "TH Sarabun New"`;
+      labels.forEach((label, index) => {
+        const cellX = x + index * cellWidth;
+        const isTotal = index === labels.length - 1;
+        context.fillStyle = isTotal ? "#1672a6" : "#234d64";
+        context.fillRect(cellX, y, cellWidth, rowHeight);
+        context.strokeStyle = "#bfd0da";
+        context.lineWidth = 2;
+        context.strokeRect(cellX, y, cellWidth, rowHeight);
+        context.fillStyle = "#ffffff";
+        context.textAlign = "center";
+        context.fillText(label, cellX + cellWidth / 2, y + 42);
+      });
+
+      values.forEach((value, index) => {
+        const cellX = x + index * cellWidth;
+        const isTotal = index === values.length - 1;
+        context.fillStyle = isTotal ? "#1672a6" : "#ffffff";
+        context.fillRect(cellX, y + rowHeight, cellWidth, rowHeight);
+        context.strokeStyle = "#bfd0da";
+        context.strokeRect(cellX, y + rowHeight, cellWidth, rowHeight);
+        context.fillStyle = isTotal ? "#ffffff" : "#102638";
+        context.font = `700 ${isTotal ? 32 : 30}px "TH Sarabun New"`;
+        context.textAlign = "center";
+        context.fillText(String(value), cellX + cellWidth / 2, y + rowHeight + 43);
+      });
+      context.textAlign = "left";
+    },
+    jpegDataUrlToPage(dataUrl) {
+      const [header, base64] = dataUrl.split(",");
+      const binary = atob(base64 || "");
+      const bytes = new Uint8Array(binary.length);
+      for (let index = 0; index < binary.length; index += 1) {
+        bytes[index] = binary.charCodeAt(index);
+      }
+
+      return {
+        bytes,
+        width: 1240,
+        height: 1754,
+        mime: header
+      };
+    },
+    createPdfFromJpegPages(pages) {
+      const encoder = new TextEncoder();
+      const pageWidth = 595.28;
+      const pageHeight = 841.89;
+      const objects = [];
+      const pageObjectIds = [];
+
+      const addObject = (parts) => {
+        objects.push(parts);
+        return objects.length;
+      };
+
+      addObject([encoder.encode("<< /Type /Catalog /Pages 2 0 R >>")]);
+      addObject([encoder.encode("PLACEHOLDER")]);
+
+      pages.forEach((page, index) => {
+        const imageId = objects.length + 3;
+        const contentId = objects.length + 2;
+        const pageId = objects.length + 1;
+        pageObjectIds.push(pageId);
+        addObject([encoder.encode(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /XObject << /Im${index + 1} ${imageId} 0 R >> >> /Contents ${contentId} 0 R >>`)]);
+        const content = `q ${pageWidth} 0 0 ${pageHeight} 0 0 cm /Im${index + 1} Do Q`;
+        addObject([encoder.encode(`<< /Length ${content.length} >>\nstream\n${content}\nendstream`)]);
+        addObject([
+          encoder.encode(`<< /Type /XObject /Subtype /Image /Width ${page.width} /Height ${page.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${page.bytes.length} >>\nstream\n`),
+          page.bytes,
+          encoder.encode("\nendstream")
+        ]);
+      });
+
+      objects[1] = [encoder.encode(`<< /Type /Pages /Kids [${pageObjectIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${pageObjectIds.length} >>`)];
+
+      const chunks = [encoder.encode("%PDF-1.4\n")];
+      const offsets = [0];
+      let byteLength = chunks[0].length;
+
+      objects.forEach((parts, index) => {
+        offsets[index + 1] = byteLength;
+        const header = encoder.encode(`${index + 1} 0 obj\n`);
+        const footer = encoder.encode("\nendobj\n");
+        chunks.push(header, ...parts, footer);
+        byteLength += header.length + parts.reduce((sum, part) => sum + part.length, 0) + footer.length;
+      });
+
+      const xrefOffset = byteLength;
+      const xrefRows = offsets
+        .map((offset, index) => index === 0 ? "0000000000 65535 f " : `${String(offset).padStart(10, "0")} 00000 n `)
+        .join("\n");
+      const trailer = encoder.encode(`xref\n0 ${objects.length + 1}\n${xrefRows}\ntrailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`);
+      chunks.push(trailer);
+      byteLength += trailer.length;
+
+      const pdfBytes = new Uint8Array(byteLength);
+      let offset = 0;
+      chunks.forEach((chunk) => {
+        pdfBytes.set(chunk, offset);
+        offset += chunk.length;
+      });
+
+      return pdfBytes;
+    },
+    async buildReportExportHtml(records, title) {
+      const fontFaceCss = await this.getExportFontFaceCss();
+      const rows = await Promise.all(records.map(async (record, index) => {
+        const imageSrc = await this.getReportExportImageSrc(record);
+        const detections = this.targetTypes
+          .map((type) => `<th>${this.escapeHtml(type)}</th>`)
+          .join("");
+        const detectionValues = this.targetTypes
+          .map((type) => `<td>${this.escapeHtml(record.metrics[type] ?? 0)}</td>`)
+          .join("");
+        const total = Object.values(record.metrics).reduce((sum, value) => sum + (Number(value) || 0), 0);
+
+        return `
+          <section class="report-card">
+            <table class="preview-table">
+              <tr>
+                <td>
+                  <img src="${this.escapeHtml(imageSrc)}" width="693" alt="${this.escapeHtml(record.name)}" />
+                </td>
+              </tr>
+            </table>
+            <div class="file-name">
+              <strong>${this.escapeHtml(record.name)}.${this.escapeHtml(String(record.ext).toLowerCase())}</strong>
+              <span>${this.escapeHtml(record.source)}</span>
+            </div>
+            <h2 class="section-title">รายละเอียดไฟล์</h2>
+            <table class="detail-grid">
+              <tr>
+                <th>ประเภทไฟล์</th><td>${this.escapeHtml(record.ext)}</td>
+                <th>ความยาววิดีโอ</th><td>${this.escapeHtml(record.duration)}</td>
+              </tr>
+              <tr>
+                <th>วันที่ / เวลา</th><td>${this.escapeHtml(`${record.date} ${record.time}`)}</td>
+                <th>ขนาดไฟล์</th><td>${this.escapeHtml(record.size)}</td>
+              </tr>
+              <tr>
+                <th>ความละเอียด</th><td>${this.escapeHtml(record.resolution)}</td>
+                <th>FPS</th><td>${this.escapeHtml(record.fps)}</td>
+              </tr>
+              <tr>
+                <th>ผู้บันทึก</th><td>${this.escapeHtml(record.recorder)}</td>
+                <th>หมายเหตุ</th><td>-</td>
+              </tr>
+            </table>
+            <h2 class="summary-title">สรุปผลตรวจจับ</h2>
+            <table class="summary-table">
+              <tr>${detections}<th class="total-head">รวมทั้งหมด</th></tr>
+              <tr>${detectionValues}<td class="total-value">${this.escapeHtml(total)}</td></tr>
+            </table>
+          </section>
+        `;
+      }));
+
+      return `<!doctype html>
+        <html>
+          <head>
+            <meta charset="utf-8" />
+            <title>${this.escapeHtml(title)}</title>
+            <style>
+              ${fontFaceCss}
+              @page WordExport { size: 8.5in 11in; margin: 0.45in 0.55in 0.45in 0.55in; }
+              .word-export-page { page: WordExport; }
+              body { margin: 0; color: #102638; background: #ffffff; font-family: "TH Sarabun New"; font-size: 16pt; }
+              h1 { width: 520pt; margin: 0 auto 8px; color: #102638; font-size: 20pt; line-height: 1.05; }
+              h2 { width: 520pt; margin: 0 auto 5px; color: #102638; font-size: 18pt; line-height: 1.05; }
+              .report-card { width: 520pt; page: WordExport; margin: 0 auto 12px; padding: 0; background: #ffffff; overflow: hidden; }
+              .preview-table { width: 520pt; margin: 0 0 7px 0; border-collapse: separate; border-spacing: 0; table-layout: fixed; page-break-inside: avoid; }
+              .preview-table td { width: 520pt; padding: 0; border: 1px solid #b9cbd6; background: #0a1217; line-height: 0; }
+              .preview-table img { display: block; width: 100%; height: auto; margin: 0; padding: 0; border: 0; }
+              .file-name { margin-bottom: 8px; line-height: 1.05; }
+              .file-name strong { display: block; color: #102638; font-size: 20pt; line-height: 1.05; }
+              .file-name span { display: block; margin-top: 2px; color: #1672a6; font-size: 18pt; line-height: 1.05; }
+              .section-title, .summary-title { padding: 3px 0 2px; border-bottom: 1.5px solid #234d64; color: #102638; }
+              table { width: 520pt; max-width: 520pt; border-collapse: separate; border-spacing: 0; table-layout: fixed; margin: 0 0 8px 0; font-size: 16pt; line-height: 1; }
+              th, td { padding: 4px 7px; border: 1px solid #bfd0da; text-align: left; vertical-align: middle; font-size: 16pt; }
+              th { color: #ffffff; background: #234d64; font-weight: 700; }
+              td { color: #102638; background: #f8fbfd; font-weight: 700; }
+              .detail-grid th, .detail-grid td { width: 130pt; }
+              .detail-grid tr:nth-child(even) td { background: #eef5f9; }
+              .summary-table th, .summary-table td { text-align: center; }
+              .summary-table { page-break-inside: avoid; margin-bottom: 0; }
+              .summary-table th, .summary-table td { width: 74.28pt; }
+              .summary-table td { background: #ffffff; font-size: 16pt; }
+              .summary-table .total-head { background: #1672a6; }
+              .summary-table .total-value { color: #ffffff; background: #1672a6; font-size: 16pt; }
+              @media print {
+                body { margin: 0; }
+                tr, th, td { break-inside: avoid; }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="word-export-page">
+              <h1>${this.escapeHtml(title)}</h1>
+              ${rows.join("")}
+            </div>
+          </body>
+        </html>`;
+    },
+    async getExportFontFaceCss() {
+      const fonts = [
+        {
+          weight: 400,
+          style: "normal",
+          path: "/Font/TH SarabunNew/THSarabunNew.ttf"
+        },
+        {
+          weight: 700,
+          style: "normal",
+          path: "/Font/TH SarabunNew/THSarabunNew Bold.ttf"
+        },
+        {
+          weight: 400,
+          style: "italic",
+          path: "/Font/TH SarabunNew/THSarabunNew Italic.ttf"
+        },
+        {
+          weight: 700,
+          style: "italic",
+          path: "/Font/TH SarabunNew/THSarabunNew BoldItalic.ttf"
+        }
+      ];
+
+      const rules = await Promise.all(fonts.map(async (font) => {
+        const dataUrl = await this.getExportAssetDataUrl(font.path);
+        if (!dataUrl) return "";
+
+        return `
+          @font-face {
+            font-family: "TH Sarabun New";
+            src: url("${dataUrl}") format("truetype");
+            font-weight: ${font.weight};
+            font-style: ${font.style};
+          }
+        `;
+      }));
+
+      return rules.filter(Boolean).join("\n");
+    },
+    async getExportAssetDataUrl(path) {
+      try {
+        const response = await fetch(this.resolveExportAssetUrl(path));
+        if (!response.ok) return "";
+        const blob = await response.blob();
+
+        return await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => resolve("");
+          reader.readAsDataURL(blob);
+        });
+      } catch (error) {
+        return "";
+      }
+    },
+    async ensureExportFontsLoaded() {
+      if (this.exportFontsLoaded || !("FontFace" in window)) return;
+
+      const fonts = [
+        {
+          weight: "400",
+          style: "normal",
+          path: "/Font/TH SarabunNew/THSarabunNew.ttf"
+        },
+        {
+          weight: "700",
+          style: "normal",
+          path: "/Font/TH SarabunNew/THSarabunNew Bold.ttf"
+        }
+      ];
+
+      await Promise.all(fonts.map(async (font) => {
+        try {
+          const face = new FontFace(
+            "TH Sarabun New",
+            `url("${this.resolveExportAssetUrl(font.path)}")`,
+            { weight: font.weight, style: font.style }
+          );
+          const loadedFace = await face.load();
+          document.fonts.add(loadedFace);
+        } catch (error) {
+          // Fall back to installed system fonts if the bundled font cannot load.
+        }
+      }));
+
+      await document.fonts.ready;
+      this.exportFontsLoaded = true;
+    },
+    async loadExportImage(src) {
+      return await new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = reject;
+        image.src = src;
+      });
+    },
+    async getReportExportImageSrc(record) {
+      const fallback = this.resolveExportAssetUrl(record.image);
+
+      try {
+        const dataUrl = await this.getExportAssetDataUrl(record.image);
+        if (!dataUrl) return fallback;
+
+        return await this.buildAnnotatedExportImage(dataUrl, record.duration);
+      } catch (error) {
+        return fallback;
+      }
+    },
+    async buildAnnotatedExportImage(src, duration) {
+      return await new Promise((resolve) => {
+        const image = new Image();
+        image.onload = () => {
+          const canvas = document.createElement("canvas");
+          const sourceWidth = image.naturalWidth || image.width;
+          const sourceHeight = image.naturalHeight || image.height;
+          const width = Math.min(1240, sourceWidth);
+          const height = Math.round(sourceHeight * (width / sourceWidth));
+          canvas.width = width;
+          canvas.height = height;
+
+          const context = canvas.getContext("2d");
+          if (!context) {
+            resolve(src);
+            return;
+          }
+
+          context.drawImage(image, 0, 0, width, height);
+          this.drawExportDetectionBox(context, width, height, 0.08, 0.45, 0.28, 0.28, "MV");
+          this.drawExportDetectionBox(context, width, height, 0.58, 0.32, 0.17, 0.2, "AMV");
+          this.drawExportDetectionBox(context, width, height, 0.77, 0.25, 0.15, 0.18, "AMV");
+
+          const timeText = this.getExportDurationOverlay(duration);
+          context.font = `700 ${Math.max(14, Math.round(width * 0.018))}px Arial, sans-serif`;
+          context.textAlign = "right";
+          context.textBaseline = "bottom";
+          context.fillStyle = "#ffffff";
+          context.shadowColor = "rgba(0, 0, 0, 0.9)";
+          context.shadowBlur = Math.max(4, Math.round(width * 0.006));
+          context.fillText(timeText, width - Math.round(width * 0.018), height - Math.round(height * 0.018));
+          context.shadowBlur = 0;
+
+          resolve(canvas.toDataURL("image/png"));
+        };
+        image.onerror = () => resolve(src);
+        image.src = src;
+      });
+    },
+    getExportDurationOverlay(duration) {
+      const value = String(duration || "").trim();
+      if (!value || value === "-" || value === "ภาพนิ่ง") return value || "-";
+      return `00:00:45 / ${value}`;
+    },
+    drawExportDetectionBox(context, imageWidth, imageHeight, left, top, width, height, label) {
+      const x = Math.round(imageWidth * left);
+      const y = Math.round(imageHeight * top);
+      const boxWidth = Math.round(imageWidth * width);
+      const boxHeight = Math.round(imageHeight * height);
+      const lineWidth = Math.max(3, Math.round(imageWidth * 0.004));
+      const labelSize = Math.max(16, Math.round(imageWidth * 0.022));
+
+      context.save();
+      context.lineWidth = lineWidth;
+      context.strokeStyle = "#5cff80";
+      context.strokeRect(x, y, boxWidth, boxHeight);
+      context.font = `800 ${labelSize}px Arial, sans-serif`;
+      context.textBaseline = "top";
+      context.fillStyle = "#5cff80";
+      context.shadowColor = "rgba(0, 0, 0, 0.9)";
+      context.shadowBlur = Math.max(3, Math.round(imageWidth * 0.004));
+      context.fillText(label, x + lineWidth + 4, y + lineWidth + 3);
+      context.restore();
+    },
+    resolveExportAssetUrl(path) {
+      if (!path) return "";
+      try {
+        return new URL(path, window.location.origin).href;
+      } catch (error) {
+        return path;
+      }
+    },
+    openPdfExportWindow(html, title, count) {
+      const printWindow = window.open("", "_blank", "width=960,height=720");
+
+      if (!printWindow) {
+        this.downloadBlob(`\ufeff${html}`, `${this.sanitizeExportFileName(title)}_pdf_export.html`, "text/html;charset=utf-8");
+        this.reportNotice = "Popup ถูกบล็อก จึง export เป็น HTML สำหรับเปิดแล้ว Save as PDF";
+        return;
+      }
+
+      printWindow.document.open();
+      printWindow.document.write(html);
+      printWindow.document.close();
+      printWindow.document.title = title;
+      printWindow.setTimeout(() => {
+        printWindow.focus();
+        printWindow.print();
+      }, 250);
+      this.reportNotice = `เปิดหน้าต่าง Export PDF ${count} รายการแล้ว`;
+    },
+    downloadBlob(content, fileName, type) {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    },
+    sanitizeExportFileName(value) {
+      return String(value || "detection_report")
+        .trim()
+        .replace(/[\\/:*?"<>|]+/g, "-")
+        .replace(/\s+/g, "_")
+        .slice(0, 80) || "detection_report";
+    },
+    escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
     },
     deleteSelectedReports() {
       if (!this.selectedReportRecords.length) return;
