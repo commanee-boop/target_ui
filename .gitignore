@@ -1,0 +1,13 @@
+.dev-server-port
+live-server.err
+live-server.log
+node_modules/
+dist/
+.backups/
+.deploy-pages/
+vite-start.err
+vite-start.log
+*.tar
+__pycache__/
+*.pyc
+tmp_export_review/
