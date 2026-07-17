@@ -67,8 +67,8 @@
             <div class="tools-title">
               <span class="tools-mark"><span class="icon bi bi-sliders2"></span></span>
               <div>
-                <strong>Target Configuration</strong>
-                <span>Input and detection setup</span>
+                <strong>แผงควบคุม</strong>
+                <span>ตั้งค่า source และเริ่ม Detect</span>
               </div>
             </div>
             <div class="tools-actions">
@@ -84,57 +84,86 @@
             </div>
           </article>
 
-          <article class="panel step-panel">
+          <article class="panel step-panel input-source-panel">
             <div class="step-head">
               <span class="step-number step-source">1</span>
-              <h2>Input Source</h2>
-            </div>
-            <div class="source-tabs" role="tablist" aria-label="Input source type">
-              <button class="source-tab" :class="{ 'is-active': inputMode === 'url' }" @click="setInputMode('url')">URL / STREAM</button>
-              <button class="source-tab" :class="{ 'is-active': inputMode === 'file' }" @click="setInputMode('file')">VIDEO / PICTURE</button>
-            </div>
-            <div v-if="inputMode === 'url'" class="source-list">
-              <div v-for="(slot, index) in sourceSlots" :key="slot.id" class="source-slot">
-                <span class="source-index">CAM {{ index + 1 }}</span>
-                <input v-model="slot.url" type="url" :aria-label="`URL stream ${index + 1}`" placeholder="rtsp:// or https:// stream" />
-                <button class="source-remove" type="button" title="Remove source" aria-label="Remove source" :disabled="sourceSlots.length === 1" @click="removeSourceSlot(slot)">×</button>
-              </div>
-              <div class="source-actions-row">
-                <button class="secondary-small" type="button" :disabled="sourceSlots.length >= 4" @click="addSourceSlot">Add source</button>
-                <button id="connectBtn" class="primary-small" @click="connectStream">{{ connectLabel }}</button>
+              <div class="step-head-copy">
+                <h2>Input Source</h2>
+                <p>{{ inputPanelDescription }}</p>
               </div>
             </div>
-            <div v-else class="source-list">
-              <div v-for="(slot, index) in sourceSlots" :key="slot.id" class="source-slot file-source">
-                <span class="source-index">CAM {{ index + 1 }}</span>
-                <label class="file-button-inline">
-                  <input class="hidden-file" type="file" :accept="fileAccept" @change="handleFileSelect($event, slot)" />
-                  <span>{{ slot.fileName || 'Choose Video / Picture' }}</span>
-                </label>
-                <button class="source-remove" type="button" title="Remove source" aria-label="Remove source" :disabled="sourceSlots.length === 1" @click="removeSourceSlot(slot)">×</button>
+            <div class="source-mode-switch" role="tablist" aria-label="Input source type">
+              <button
+                v-for="option in sourceModeOptions"
+                :key="option.id"
+                class="source-mode-pill"
+                :class="{ 'is-active': sourceMode === option.id }"
+                type="button"
+                @click="setSourceMode(option.id)"
+              >
+                <span class="source-mode-icon bi" :class="option.icon" aria-hidden="true"></span>
+                <span>{{ option.title }}</span>
+              </button>
+            </div>
+            <div v-if="sourceMode === 'stream'" class="stream-source-panel">
+              <div class="input-section-label input-section-label-compact">
+                <span>{{ sourceListTitle }}</span>
+                <small>{{ sourceStatus }}</small>
               </div>
-              <div class="source-actions-row">
-                <button class="secondary-small" type="button" :disabled="sourceSlots.length >= 4" @click="addSourceSlot">Add source</button>
-                <button class="primary-small" @click="connectStream">{{ connectLabel }}</button>
+              <div class="source-list stream-source-list">
+                <div v-for="(slot, index) in sourceSlots" :key="slot.id" class="stream-source-row" :class="`is-${sourceSlotState(slot)}`">
+                  <span class="stream-source-label">Stream {{ index + 1 }}</span>
+                  <input v-model="slot.url" type="url" :aria-label="`URL stream ${index + 1}`" :placeholder="streamPlaceholder" />
+                  <span v-if="sourceSlotState(slot) !== 'empty'" class="source-row-state" :class="`is-${sourceSlotState(slot)}`">{{ sourceSlotStateLabel(slot) }}</span>
+                  <button class="source-remove stream-remove-button" type="button" title="Remove source" aria-label="Remove source" :disabled="isSourceRemoveDisabled(slot)" @click="removeSourceSlot(slot)">×</button>
+                </div>
+              </div>
+              <div class="source-actions-row source-actions-row-clean">
+                <button class="secondary-small" type="button" :disabled="!canAddMoreSources" @click="addSourceSlot">{{ addSourceLabel }}</button>
+                <p class="source-actions-hint">{{ sourceHelpText }}</p>
               </div>
             </div>
-            <div class="connection-state" :class="sourceStatusClass">
-              <span></span>
-              <strong id="connectionText">{{ sourceStatus }}</strong>
+            <div v-else-if="primarySourceSlot" class="single-upload-panel" :class="`is-${sourceSlotState(primarySourceSlot)}`">
+              <label class="single-upload-card">
+                <input class="hidden-file" type="file" :accept="fileAccept" @change="handleFileSelect($event, primarySourceSlot)" />
+                <span class="single-upload-icon bi" :class="sourceMode === 'image' ? 'bi-image' : 'bi-film'" aria-hidden="true"></span>
+                <span class="single-upload-copy">
+                  <strong>{{ singleUploadTitle }}</strong>
+                  <small>{{ singleUploadDescription }}</small>
+                </span>
+                <span class="single-upload-action">{{ singleUploadButtonLabel }}</span>
+              </label>
             </div>
+            <div class="detect-actions-row">
+              <button id="startBtn" class="primary-small detect-action-button start-detect-button" :class="{ 'is-running': running }" :disabled="!running && !canRunDetection" :title="running ? 'Detection in progress' : runDisabledReason" @click="toggleRunning">
+                <span class="bi" :class="running ? 'bi-hourglass-split' : 'bi-play-fill'" aria-hidden="true"></span>
+                <strong>{{ running ? 'กำลัง Detect' : 'Detect' }}</strong>
+              </button>
+              <button class="secondary-small detect-action-button stop-detect-button" type="button" :disabled="!running" @click="stopDetection">
+                <span class="bi bi-stop-fill" aria-hidden="true"></span>
+                <strong>หยุด</strong>
+              </button>
+            </div>
+            <p class="detect-actions-hint">{{ detectActionHint }}</p>
           </article>
 
           <article class="panel step-panel target-panel target-class-panel">
             <button class="target-class-head" type="button" :aria-expanded="!targetPanelCollapsed" @click="targetPanelCollapsed = !targetPanelCollapsed">
               <span class="target-head-icon bi bi-bullseye"></span>
-              <strong>TARGET CLASSES</strong>
+              <span class="target-head-copy">
+                <strong>TARGET CLASSES</strong>
+                <small>{{ targetSelectionSummary }}</small>
+              </span>
               <span class="target-head-chevron"></span>
             </button>
             <div v-show="!targetPanelCollapsed" class="target-class-list" id="targetGrid">
               <button class="target-class-row" :class="{ 'is-selected': isTargetSelected('ALL'), 'is-muted': !isTargetSelected('ALL') }" type="button" data-type="ALL" title="Select all target classes" aria-label="Select all target classes" @click="selectTarget('ALL')">
                 <span class="target-check" aria-hidden="true"></span>
                 <span class="target-type-icon bi bi-grid-3x3-gap-fill" aria-hidden="true"></span>
-                <span class="target-class-copy">SELECT ALL</span>
+                <span class="target-class-copy">
+                  <strong>SELECT ALL</strong>
+                  <small>เลือกหรือยกเลิกทั้งหมด</small>
+                </span>
                 <span class="target-class-action"></span>
               </button>
               <button v-for="target in targetClassOptions" :key="target.id" class="target-class-row" :class="{ 'is-selected': isTargetSelected(target.id), 'is-muted': !isTargetSelected(target.id) }" type="button" :data-type="target.id" :title="target.detail" :aria-label="target.detail" @click="selectTarget(target.id)">
@@ -149,52 +178,118 @@
             </div>
           </article>
 
-          <article class="panel step-panel model-panel">
-            <div class="step-head">
-              <span class="step-number step-model">3</span>
-              <h2>Detection Model</h2>
-            </div>
-            <label class="model-select">
-              <span>Model</span>
-              <select v-model="selectedModel" aria-label="Detection model">
-                <option v-for="model in detectionModels" :key="model.id" :value="model.id">
-                  {{ model.name }}
-                </option>
-              </select>
-            </label>
-            <div class="model-summary">
-              <span class="processor">AI</span>
-              <div>
-                <strong>{{ selectedModelName }}</strong>
-                <span>{{ selectedModelDetail }}</span>
-              </div>
-            </div>
-            <div class="model-meta">
-              <span class="model-pill" :class="selectedModelStatusClass">{{ selectedModelStatusText }}</span>
-              <span class="model-pill" :class="backendStatusClass">{{ backendStatusText }}</span>
-              <span class="model-pill">{{ selectedModelSize }}</span>
-            </div>
-            <div class="model-file-meta">
-              <strong>{{ selectedModelMeta?.fileName || 'rm-img.pt' }}</strong>
-              <span>{{ selectedModelMeta?.publicPath || '/models/rm-img.pt' }}</span>
-            </div>
-            <p class="model-hint">{{ modelHintText }}</p>
-            <button id="startBtn" class="primary-action" :class="{ 'is-running': running }" :disabled="!running && !canRunDetection" :title="running ? 'Detection in progress' : runDisabledReason" @click="toggleRunning">
-              <span class="play-icon bi bi-play-fill"></span>
-              <strong>{{ running ? 'Detecting...' : 'Start Detection' }}</strong>
-            </button>
-            <button class="stop-action" type="button" :disabled="!running" @click="stopDetection">
-              <span class="stop-action-icon bi bi-stop-fill"></span>
-              <strong>Stop Detection</strong>
-            </button>
-          </article>
         </section>
 
         <section v-show="currentView === 'detect'" class="content-grid">
-          <div class="left-stack">
+          <article ref="previewPanel" class="panel preview-panel">
+            <div class="panel-title compact preview-header">
+              <div class="summary-heading">
+                <h2>ภาพแสดงผลขนาดใหญ่ (Live)</h2>
+                <p>โฟกัสภาพหลักให้ใหญ่ขึ้น พร้อมดูข้อมูลรองจากแถบด้านขวา</p>
+              </div>
+              <div class="preview-tools">
+                <button title="บันทึกภาพ" aria-label="บันทึกภาพ"><span class="icon bi bi-camera"></span></button>
+                <button type="button" :title="fullscreenActive ? 'Exit fullscreen' : 'Fullscreen'" :aria-label="fullscreenActive ? 'Exit fullscreen' : 'Fullscreen'" @click="toggleFullscreen"><span class="icon bi" :class="fullscreenActive ? 'bi-fullscreen-exit' : 'bi-fullscreen'"></span></button>
+              </div>
+            </div>
+            <div ref="liveFrame" class="live-frame" :class="[`source-count-${previewSourceCount}`, { 'has-sources': activeSources.length, 'is-fullscreen': fullscreenActive }]">
+              <div v-for="source in activeSources" :key="source.id" class="feed-tile" :data-live-title="`LIVE DETECTION (${source.cameraLabel})   •  LIVE`">
+                <video
+                  v-if="isSourcePlayable(source)"
+                  :ref="(element) => setVideoElement(source.id, element)"
+                  :src="source.src"
+                  autoplay
+                  muted
+                  loop
+                  playsinline
+                  preload="metadata"
+                  @loadedmetadata="handleVideoLoadedMetadata(source, $event)"
+                  @timeupdate="handleVideoTimeUpdate(source, $event)"
+                  @play="setVideoPlayingState(source.id, true)"
+                  @pause="setVideoPlayingState(source.id, false)"
+                ></video>
+                <img v-else :src="sourcePreviewImage(source)" :alt="source.label" />
+                <div v-if="isSourceProcessing(source)" class="scan-line"></div>
+                <span v-if="isSourceProcessing(source)" class="live-dot">กำลังประมวลผล</span>
+                <span class="feed-name">{{ source.label }}</span>
+                <span v-if="source.analysis?.status === 'ready'" class="feed-analysis-note">{{ sourceDetectionNote(source) }}</span>
+                <span
+                  v-for="detection in currentSourceDetections(source)"
+                  :key="`${source.id}-${detection.targetKey}-${detection.box.join('-')}`"
+                  class="playback-detection-box"
+                  :class="detection.targetKey.toLowerCase()"
+                  :style="detectionBoxStyle(detection, source)"
+                >
+                  <strong>{{ detection.targetKey }}</strong>
+                  <small>{{ formatConfidence(detection.confidence) }}</small>
+                </span>
+                <span v-if="!source.analysis && sourceMode === 'stream'" class="box b1">MV</span>
+                <span v-if="!source.analysis && sourceMode === 'stream'" class="box b2">AMV</span>
+                <span v-if="!source.analysis && sourceMode === 'stream'" class="box b3">LMV</span>
+                <div v-if="isSourcePlayable(source)" class="feed-control-bar" aria-label="Camera playback controls">
+                  <button type="button" title="ย้อนกลับ 5 วินาที" aria-label="ย้อนกลับ 5 วินาที" @click="seekVideoSource(source.id, -5)"><span class="icon bi bi-skip-backward-fill"></span></button>
+                  <button type="button" title="Play" aria-label="Play" @click="playVideoSource(source.id)"><span class="icon bi bi-play-fill"></span></button>
+                  <button type="button" title="Pause" aria-label="Pause" class="pause-bars" @click="pauseVideoSource(source.id)"></button>
+                  <button type="button" title="Stop" aria-label="Stop" @click="stopVideoSource(source.id)"><span class="control-icon bi bi-stop-fill"></span></button>
+                  <button type="button" title="Restart" aria-label="Restart" @click="restartVideoSource(source.id)"><span class="control-icon bi bi-arrow-clockwise"></span></button>
+                  <div class="feed-progress"><span :style="{ width: `${sourceProgressPercent(source)}%` }"></span></div>
+                  <time>{{ formatDuration(sourceCurrentTime(source)) }} / {{ sourceDurationLabel(source) }}</time>
+                  <button type="button" class="feed-speed" title="Playback speed" aria-label="Playback speed" @click="cycleVideoSpeed(source.id)">{{ sourcePlaybackRateLabel(source.id) }}</button>
+                </div>
+              </div>
+              <template v-if="!activeSources.length">
+                <img src="/assets/surveillance-road.png" alt="ภาพถนนและยานพาหนะจากมุมสูงสำหรับตัวอย่างการตรวจจับ" />
+                <div v-if="showPreviewProcessingState" class="scan-line"></div>
+                <span v-if="showPreviewProcessingState" class="live-dot">กำลังประมวลผล</span>
+                <div class="live-overlay-menu" aria-label="Live view tools">
+                  <button type="button" title="Capture image" aria-label="Capture image"><span class="icon bi bi-camera"></span></button>
+                  <button type="button" :title="fullscreenActive ? 'Exit fullscreen' : 'Fullscreen'" :aria-label="fullscreenActive ? 'Exit fullscreen' : 'Fullscreen'" @click.stop="toggleFullscreen"><span class="icon bi" :class="fullscreenActive ? 'bi-fullscreen-exit' : 'bi-fullscreen'"></span></button>
+                </div>
+              </template>
+              <div class="live-frame-tools">
+                <button type="button" title="จับภาพ" aria-label="จับภาพ"><span class="icon bi bi-camera"></span></button>
+                <button type="button" title="ย่อภาพ" aria-label="ย่อภาพ" @click.stop="toggleFullscreen"><span class="icon bi bi-fullscreen-exit"></span></button>
+              </div>
+            </div>
+            <div v-if="showGlobalPlaybackBar" class="video-bar">
+              <button title="ย้อนกลับ" aria-label="ย้อนกลับ"><span class="icon bi bi-skip-backward-fill"></span></button>
+              <button title="เล่น" aria-label="เล่น"><span class="icon bi bi-play-fill"></span></button>
+              <button title="ถัดไป" aria-label="ถัดไป"><span class="control-icon bi bi-skip-forward-fill"></span></button>
+              <button title="หยุดชั่วคราว" aria-label="หยุดชั่วคราว" class="pause-bars"></button>
+              <button title="หยุด" aria-label="หยุด"><span class="control-icon bi bi-stop-fill"></span></button>
+              <button title="เริ่มต้นใหม่" aria-label="เริ่มต้นใหม่"><span class="control-icon bi bi-arrow-clockwise"></span></button>
+              <div class="progress"><span></span></div>
+              <time>00:00:00 / {{ monitoringSources[0]?.analysis?.media?.durationLabel || '00:00:00' }}</time>
+              <button title="จับภาพ" aria-label="จับภาพ"><span class="icon bi bi-camera"></span></button>
+              <button class="speed">1.0x</button>
+            </div>
+          </article>
+
+          <aside class="intel-stack" aria-label="Detection overview and event feed">
             <article class="panel summary-panel">
-              <div class="panel-title">
-                <h2>สรุปผลการตรวจจับ</h2>
+              <div class="panel-title compact">
+                <div class="summary-heading">
+                  <h2>Mission Overview</h2>
+                  <p>คงธีมเดิม แต่ย่อข้อมูลหลักให้อยู่ในมุมมองเดียวมากขึ้น</p>
+                </div>
+                <span class="summary-badge" :class="{ 'is-live': running }">{{ running ? "Mission Live" : "Standby" }}</span>
+              </div>
+              <div class="overview-grid">
+                <article class="overview-card total-card">
+                  <span>Total Targets</span>
+                  <strong id="totalCount">{{ totalCount }}</strong>
+                  <small>{{ sourceStatus }}</small>
+                </article>
+              </div>
+              <div class="live-status-strip compact-strip" aria-label="สถานะการตรวจจับแบบย่อ">
+                <article v-for="card in overviewStatusCards" :key="`overview-${card.id}`" class="live-status-card" :class="[card.id, card.trendClass]">
+                  <div class="live-status-copy">
+                    <span>{{ card.label }}</span>
+                    <strong>{{ card.value }}<small v-if="card.unit">{{ card.unit }}</small></strong>
+                    <em>{{ card.note }}</em>
+                  </div>
+                  <span class="live-status-icon bi" :class="liveStatusIconClass(card.id)" aria-hidden="true"></span>
+                </article>
               </div>
               <div class="summary-lanes source-lanes" id="metrics">
                 <div v-for="group in sourceMetrics" :key="`summary-${group.source.id}`" class="source-lane summary-lane">
@@ -204,203 +299,108 @@
                   </div>
                   <div class="metric-grid">
                     <div v-for="type in targetTypes" :key="`source-${group.source.id}-${type}`" class="metric" :class="type.toLowerCase()"><span class="metric-bi bi" :class="targetTypeIconClass(type)"></span><span class="metric-label">{{ type }}</span><strong>{{ group.metrics[type] }}</strong></div>
-                    <div class="metric total"><span class="metric-bi bi bi-grid-3x3-gap-fill"></span><span class="metric-label">Total Targets</span><strong>{{ group.total }}</strong></div>
                   </div>
                 </div>
               </div>
               <div class="metric-grid legacy-metric-grid">
                 <div v-for="type in targetTypes" :key="`legacy-${type}`" class="metric" :class="type.toLowerCase()"><span class="metric-bi bi" :class="targetTypeIconClass(type)"></span><span class="metric-label">{{ type }}</span><strong>{{ metrics[type] }}</strong></div>
-                <div class="metric total"><span class="metric-bi bi bi-grid-3x3-gap-fill"></span><span class="metric-label">รวมทั้งหมด</span><strong id="totalCount">{{ totalCount }}</strong></div>
               </div>
             </article>
 
-            <article ref="previewPanel" class="panel preview-panel">
-              <div class="panel-title compact">
-                <h2>ภาพแสดงผลขนาดใหญ่ (Live)</h2>
-                <div class="preview-tools">
-                  <button title="บันทึกภาพ" aria-label="บันทึกภาพ"><span class="icon bi bi-camera"></span></button>
-                  <button type="button" :title="fullscreenActive ? 'Exit fullscreen' : 'Fullscreen'" :aria-label="fullscreenActive ? 'Exit fullscreen' : 'Fullscreen'" @click="toggleFullscreen"><span class="icon bi" :class="fullscreenActive ? 'bi-fullscreen-exit' : 'bi-fullscreen'"></span></button>
+            <article class="panel intel-panel">
+              <div class="panel-title compact intel-panel-head">
+                <div class="summary-heading">
+                  <h2>Operational Feed</h2>
+                  <p>สลับดู timeline, log และ snapshot โดยไม่ต้องเลื่อนลงยาว</p>
+                </div>
+                <div class="intel-tabs" role="tablist" aria-label="Operational feed tabs">
+                  <button class="intel-tab" :class="{ 'is-active': activeIntelTab === 'logs' }" type="button" @click="activeIntelTab = 'logs'">Log</button>
+                  <button class="intel-tab" :class="{ 'is-active': activeIntelTab === 'timeline' }" type="button" @click="activeIntelTab = 'timeline'">Timeline</button>
+                  <button class="intel-tab" :class="{ 'is-active': activeIntelTab === 'snapshots' }" type="button" @click="activeIntelTab = 'snapshots'">Snapshot</button>
                 </div>
               </div>
-              <div class="live-status-strip" aria-label="สถานะการตรวจจับบนภาพขนาดใหญ่">
-                <article v-for="card in liveStatusCards" :key="card.id" class="live-status-card" :class="[card.id, card.trendClass]">
-                  <div class="live-status-copy">
-                    <span>{{ card.label }}</span>
-                    <strong>{{ card.value }}<small v-if="card.unit">{{ card.unit }}</small></strong>
-                    <em>{{ card.note }}</em>
-                  </div>
-                  <span class="live-status-icon bi" :class="liveStatusIconClass(card.id)" aria-hidden="true"></span>
-                </article>
-              </div>
-              <div ref="liveFrame" class="live-frame" :class="[`source-count-${previewSourceCount}`, { 'has-sources': activeSources.length, 'is-fullscreen': fullscreenActive }]">
-                <div v-for="source in activeSources" :key="source.id" class="feed-tile" :data-live-title="`LIVE DETECTION (${source.cameraLabel})   •  LIVE`">
-                  <video
-                    v-if="isSourcePlayable(source)"
-                    :ref="(element) => setVideoElement(source.id, element)"
-                    :src="source.src"
-                    autoplay
-                    muted
-                    loop
-                    playsinline
-                    preload="metadata"
-                    @loadedmetadata="handleVideoLoadedMetadata(source, $event)"
-                    @timeupdate="handleVideoTimeUpdate(source, $event)"
-                    @play="setVideoPlayingState(source.id, true)"
-                    @pause="setVideoPlayingState(source.id, false)"
-                  ></video>
-                  <img v-else-if="source.analysis?.previewImage" :src="source.analysis.previewImage" :alt="`${source.label} annotated preview`" />
-                  <img v-else :src="source.src || 'assets/surveillance-road.png'" :alt="source.label" />
-                  <div v-if="isSourceProcessing(source)" class="scan-line"></div>
-                  <span v-if="isSourceProcessing(source)" class="live-dot">กำลังประมวลผล</span>
-                  <span class="feed-name">{{ source.label }}</span>
-                  <span v-if="source.analysis?.status === 'ready'" class="feed-analysis-note">{{ sourceDetectionNote(source) }}</span>
-                  <span
-                    v-for="detection in currentSourceDetections(source)"
-                    :key="`${source.id}-${detection.targetKey}-${detection.box.join('-')}`"
-                    class="playback-detection-box"
-                    :class="detection.targetKey.toLowerCase()"
-                    :style="detectionBoxStyle(detection, source)"
-                  >
-                    <strong>{{ detection.targetKey }}</strong>
-                    <small>{{ formatConfidence(detection.confidence) }}</small>
-                  </span>
-                  <span v-if="!source.analysis && inputMode === 'url'" class="box b1">MV</span>
-                  <span v-if="!source.analysis && inputMode === 'url'" class="box b2">AMV</span>
-                  <span v-if="!source.analysis && inputMode === 'url'" class="box b3">LMV</span>
-                  <div v-if="isSourcePlayable(source)" class="feed-control-bar" aria-label="Camera playback controls">
-                    <button type="button" title="ย้อนกลับ 5 วินาที" aria-label="ย้อนกลับ 5 วินาที" @click="seekVideoSource(source.id, -5)"><span class="icon bi bi-skip-backward-fill"></span></button>
-                    <button type="button" title="Play" aria-label="Play" @click="playVideoSource(source.id)"><span class="icon bi bi-play-fill"></span></button>
-                    <button type="button" title="Pause" aria-label="Pause" class="pause-bars" @click="pauseVideoSource(source.id)"></button>
-                    <button type="button" title="Stop" aria-label="Stop" @click="stopVideoSource(source.id)"><span class="control-icon bi bi-stop-fill"></span></button>
-                    <button type="button" title="Restart" aria-label="Restart" @click="restartVideoSource(source.id)"><span class="control-icon bi bi-arrow-clockwise"></span></button>
-                    <div class="feed-progress"><span :style="{ width: `${sourceProgressPercent(source)}%` }"></span></div>
-                    <time>{{ formatDuration(sourceCurrentTime(source)) }} / {{ sourceDurationLabel(source) }}</time>
-                    <button type="button" class="feed-speed" title="Playback speed" aria-label="Playback speed" @click="cycleVideoSpeed(source.id)">{{ sourcePlaybackRateLabel(source.id) }}</button>
-                  </div>
-                </div>
-                <template v-if="!activeSources.length">
-                  <img src="/assets/surveillance-road.png" alt="ภาพถนนและยานพาหนะจากมุมสูงสำหรับตัวอย่างการตรวจจับ" />
-                  <div v-if="showPreviewProcessingState" class="scan-line"></div>
-                  <span v-if="showPreviewProcessingState" class="live-dot">กำลังประมวลผล</span>
-                  <span class="box b1">MV</span>
-                  <span class="box b2">AMV</span>
-                  <span class="box b3">LMV</span>
-                  <span class="box b4">AFV</span>
-                  <span class="box b5">AMV</span>
-                  <div class="live-overlay-menu" aria-label="Live view tools">
-                    <button type="button" title="Capture image" aria-label="Capture image"><span class="icon bi bi-camera"></span></button>
-                    <button type="button" :title="fullscreenActive ? 'Exit fullscreen' : 'Fullscreen'" :aria-label="fullscreenActive ? 'Exit fullscreen' : 'Fullscreen'" @click.stop="toggleFullscreen"><span class="icon bi" :class="fullscreenActive ? 'bi-fullscreen-exit' : 'bi-fullscreen'"></span></button>
-                  </div>
-                </template>
-                <div class="live-frame-tools">
-                  <button type="button" title="จับภาพ" aria-label="จับภาพ"><span class="icon bi bi-camera"></span></button>
-                  <button type="button" title="ย่อภาพ" aria-label="ย่อภาพ" @click.stop="toggleFullscreen"><span class="icon bi bi-fullscreen-exit"></span></button>
-                </div>
-              </div>
-              <div v-if="showGlobalPlaybackBar" class="video-bar">
-                <button title="ย้อนกลับ" aria-label="ย้อนกลับ"><span class="icon bi bi-skip-backward-fill"></span></button>
-                <button title="เล่น" aria-label="เล่น"><span class="icon bi bi-play-fill"></span></button>
-                <button title="ถัดไป" aria-label="ถัดไป"><span class="control-icon bi bi-skip-forward-fill"></span></button>
-                <button title="หยุดชั่วคราว" aria-label="หยุดชั่วคราว" class="pause-bars"></button>
-                <button title="หยุด" aria-label="หยุด"><span class="control-icon bi bi-stop-fill"></span></button>
-                <button title="เริ่มต้นใหม่" aria-label="เริ่มต้นใหม่"><span class="control-icon bi bi-arrow-clockwise"></span></button>
-                <div class="progress"><span></span></div>
-                <time>00:00:00 / {{ monitoringSources[0]?.analysis?.media?.durationLabel || '00:10:00' }}</time>
-                <button title="จับภาพ" aria-label="จับภาพ"><span class="icon bi bi-camera"></span></button>
-                <button class="speed">1.0x</button>
-              </div>
-            </article>
-
-            <article v-if="showTimelinePanel" class="panel timeline-panel">
-              <div class="panel-title compact">
-                <h2>ไทม์ไลน์การตรวจจับตลอดวิดีโอ</h2>
-              </div>
-              <div class="source-lanes timeline-lanes">
-                <div v-for="group in sourceTimelineGroups" :key="`timeline-${group.source.id}`" class="source-lane">
-                  <div class="lane-head">
-                    <strong>{{ group.source.cameraLabel }}</strong>
-                    <span>{{ group.source.label }}</span>
-                  </div>
-                  <div class="timeline">
-                    <div class="timeline-track"></div>
-                    <button v-for="event in group.events" :key="`${group.source.id}-${event.time}-${event.type}-${event.total}`" type="button" class="event" :class="event.typeClass" :style="{ left: `${event.left}%` }" @click="openTimelinePopup(event, group.source)" :aria-label="`Open ${event.type} detection at ${event.time}`"></button>
-                  </div>
-                  <p v-if="!group.events.length" class="timeline-empty">ไม่พบการตรวจจับในช่วงเวลาที่วิเคราะห์</p>
-                  <div class="time-scale">
-                    <span v-for="marker in group.scale" :key="`${group.source.id}-${marker}`">{{ marker }}</span>
-                  </div>
-                </div>
-              </div>
-              <div class="filter-row">
-                <label><input type="checkbox" :checked="allTimelineTargetsSelected" @change="toggleTimelineTarget('ALL')" /><span class="filter-icon bi bi-grid-3x3-gap-fill" aria-hidden="true"></span><span>ทั้งหมด</span></label>
-                <label v-for="type in targetTypes" :key="`target-filter-${type}`"><input type="checkbox" :checked="isTimelineTargetSelected(type)" @change="toggleTimelineTarget(type)" /><span class="filter-icon bi" :class="targetTypeIconClass(type)" aria-hidden="true"></span><span>{{ type }}</span></label>
-              </div>
-            </article>
-          </div>
-
-          <div class="right-stack">
-            <article class="panel log-panel">
-              <div class="panel-title compact">
-                <h2>Log การทำงาน</h2>
-              </div>
-              <div class="log-table" role="table" aria-label="Log การทำงาน">
-                <div class="log-head" role="row">
-                  <span role="columnheader">เวลา (Time)</span>
-                  <span role="columnheader">ข้อความ (Message)</span>
-                </div>
-                <div id="logRows" class="log-rows source-lanes log-lanes">
-                  <div v-for="group in sourceLogs" :key="`log-${group.source.id}`" class="source-lane log-lane">
-                    <div class="lane-head">
-                      <strong>{{ group.source.cameraLabel }}</strong>
-                      <span>{{ group.source.label }}</span>
+              <div class="intel-panel-body">
+                <section v-show="activeIntelTab === 'logs'" class="intel-section log-panel">
+                  <div class="log-table" role="table" aria-label="Log การทำงาน">
+                    <div class="log-head" role="row">
+                      <span role="columnheader">เวลา (Time)</span>
+                      <span role="columnheader">ข้อความ (Message)</span>
                     </div>
-                    <div v-for="row in group.logs" :key="`${group.source.id}-${row.id}`" class="log-row" role="row">
-                      <span role="cell">{{ row.time }}</span>
-                      <span role="cell" v-html="row.message"></span>
-                    </div>
-                    <div class="log-save-row">
-                      <button type="button" class="log-save-button" :disabled="!canSaveData" :title="saveDisabledReason" @click="openSaveDialog(group.source)">
-                        <span class="save-icon bi bi-floppy"></span>
-                        <strong>บันทึกข้อมูล</strong>
-                        <small>{{ group.source.cameraLabel }}</small>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </article>
-
-            <article class="panel snapshots-panel">
-              <div class="panel-title compact">
-                <h2>ตัวอย่างภาพในช่วงเวลาที่ตรวจจับ (Snapshot Every 10s)</h2>
-              </div>
-              <div class="snapshot-strip">
-                <button title="ก่อนหน้า" aria-label="ก่อนหน้า"><span class="icon bi bi-chevron-left"></span></button>
-                <div class="snapshots source-lanes snapshot-lanes" id="snapshots">
-                  <div v-for="group in sourceSnapshots" :key="`snapshot-${group.source.id}`" class="source-lane snapshot-lane">
-                    <div class="lane-head">
-                      <strong>{{ group.source.cameraLabel }}</strong>
-                      <span>{{ group.source.label }}</span>
-                    </div>
-                    <div v-if="group.snapshots.length" class="snapshot-row" :class="{ 'is-single': group.snapshots.length === 1 }">
-                      <button v-for="snapshot in group.snapshots" :key="`${group.source.id}-${snapshot.time}-${snapshot.type}`" type="button" class="snapshot" :class="{ 'is-image-source': !isSourcePlayable(group.source) }" :title="snapshot.summaryText || `${snapshot.type} ${snapshot.time}`" @click="openSnapshotPopup(snapshot, group.source)" :aria-label="`Open ${snapshot.type} snapshot ${snapshotDisplayTime(snapshot, group.source)}`">
-                        <img :src="snapshot.image || group.source.analysis?.previewImage || fallbackPreviewImage" :alt="`Snapshot ${snapshot.type}`" />
-                        <span class="snapshot-badge">{{ snapshot.type }}</span>
-                        <div class="snapshot-copy">
-                          <strong>{{ snapshotDisplayTime(snapshot, group.source) }}</strong>
-                          <span>{{ snapshot.summaryText || `${snapshot.total} detections` }}</span>
+                    <div id="logRows" class="log-rows source-lanes log-lanes">
+                      <div v-for="group in sourceLogs" :key="`log-${group.source.id}`" class="source-lane log-lane">
+                        <div class="lane-head">
+                          <strong>{{ group.source.cameraLabel }}</strong>
+                          <span>{{ group.source.label }}</span>
                         </div>
-                      </button>
+                        <div v-for="row in group.logs" :key="`${group.source.id}-${row.id}`" class="log-row" role="row">
+                          <span role="cell">{{ row.time }}</span>
+                          <span role="cell" v-html="row.message"></span>
+                        </div>
+                        <div class="log-save-row">
+                          <button type="button" class="log-save-button" :disabled="!canSaveData" :title="saveDisabledReason" @click="openSaveDialog(group.source)">
+                            <span class="save-icon bi bi-floppy"></span>
+                            <strong>บันทึกข้อมูล</strong>
+                            <small>{{ group.source.cameraLabel }}</small>
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                    <p v-else class="snapshot-empty">ไม่พบ snapshot จากผลตรวจจับ</p>
                   </div>
-                </div>
-                <button title="ถัดไป" aria-label="ถัดไป"><span class="icon bi bi-chevron-right"></span></button>
-              </div>
-              <div class="pager"><span class="is-active"></span><span></span><span></span><span></span></div>
-            </article>
+                </section>
 
-          </div>
+                <section v-show="activeIntelTab === 'timeline'" class="intel-section timeline-panel">
+                  <div v-if="showTimelinePanel" class="source-lanes timeline-lanes">
+                    <div v-for="group in sourceTimelineGroups" :key="`timeline-${group.source.id}`" class="source-lane">
+                      <div class="lane-head">
+                        <strong>{{ group.source.cameraLabel }}</strong>
+                        <span>{{ group.source.label }}</span>
+                      </div>
+                      <div class="timeline">
+                        <div class="timeline-track"></div>
+                        <button v-for="event in group.events" :key="`${group.source.id}-${event.time}-${event.type}-${event.total}`" type="button" class="event" :class="event.typeClass" :style="{ left: `${event.left}%` }" @click="openTimelinePopup(event, group.source)" :aria-label="`Open ${event.type} detection at ${event.time}`"></button>
+                      </div>
+                      <p v-if="!group.events.length" class="timeline-empty">ไม่พบการตรวจจับในช่วงเวลาที่วิเคราะห์</p>
+                      <div class="time-scale">
+                        <span v-for="marker in group.scale" :key="`${group.source.id}-${marker}`">{{ marker }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <p v-else class="intel-empty">ยังไม่มี timeline สำหรับแหล่งข้อมูลชุดนี้</p>
+                  <div v-if="showTimelinePanel" class="filter-row">
+                    <label><input type="checkbox" :checked="allTimelineTargetsSelected" @change="toggleTimelineTarget('ALL')" /><span class="filter-icon bi bi-grid-3x3-gap-fill" aria-hidden="true"></span><span>ทั้งหมด</span></label>
+                    <label v-for="type in targetTypes" :key="`target-filter-${type}`"><input type="checkbox" :checked="isTimelineTargetSelected(type)" @change="toggleTimelineTarget(type)" /><span class="filter-icon bi" :class="targetTypeIconClass(type)" aria-hidden="true"></span><span>{{ type }}</span></label>
+                  </div>
+                </section>
+
+                <section v-show="activeIntelTab === 'snapshots'" class="intel-section snapshots-panel">
+                  <div class="snapshot-strip">
+                    <button title="ก่อนหน้า" aria-label="ก่อนหน้า"><span class="icon bi bi-chevron-left"></span></button>
+                    <div class="snapshots source-lanes snapshot-lanes" id="snapshots">
+                      <div v-for="group in sourceSnapshots" :key="`snapshot-${group.source.id}`" class="source-lane snapshot-lane">
+                        <div class="lane-head">
+                          <strong>{{ group.source.cameraLabel }}</strong>
+                          <span>{{ group.source.label }}</span>
+                        </div>
+                        <div v-if="group.snapshots.length" class="snapshot-row" :class="{ 'is-single': group.snapshots.length === 1 }">
+                          <button v-for="snapshot in group.snapshots" :key="`${group.source.id}-${snapshot.time}-${snapshot.type}`" type="button" class="snapshot" :class="{ 'is-image-source': !isSourcePlayable(group.source) }" :title="snapshot.summaryText || `${snapshot.type} ${snapshot.time}`" @click="openSnapshotPopup(snapshot, group.source)" :aria-label="`Open ${snapshot.type} snapshot ${snapshotDisplayTime(snapshot, group.source)}`">
+                            <img :src="snapshot.image || group.source.analysis?.previewImage || fallbackPreviewImage" :alt="`Snapshot ${snapshot.type}`" />
+                            <span class="snapshot-badge">{{ snapshot.type }}</span>
+                            <div class="snapshot-copy">
+                              <strong>{{ snapshotDisplayTime(snapshot, group.source) }}</strong>
+                              <span>{{ snapshot.summaryText || `${snapshot.total} detections` }}</span>
+                            </div>
+                          </button>
+                        </div>
+                        <p v-else class="snapshot-empty">ไม่พบ snapshot จากผลตรวจจับ</p>
+                      </div>
+                    </div>
+                    <button title="ถัดไป" aria-label="ถัดไป"><span class="icon bi bi-chevron-right"></span></button>
+                  </div>
+                  <div class="pager"><span class="is-active"></span><span></span><span></span><span></span></div>
+                </section>
+              </div>
+            </article>
+          </aside>
         </section>
 
         <section v-show="currentView === 'report'" class="report-page" aria-label="Saved detection reports">
@@ -643,6 +643,7 @@ export default {
       fullscreenActive: false,
       sidebarCollapsed: false,
       inputMode: "url",
+      sourceMode: "stream",
       streamUrl: "",
       sourceSlots: [
         { id: 1, url: "", file: null, fileName: "", fileUrl: "", fileType: "", analysis: null }
@@ -650,6 +651,7 @@ export default {
       nextSourceId: 2,
       selectedTargets: [...DEFAULT_TARGET_SELECTION],
       timelineFilterTargets: [...DEFAULT_TARGET_SELECTION],
+      activeIntelTab: "logs",
       targetPanelCollapsed: false,
       selectedModel: "rm-img",
       selectedReportId: 1,
@@ -677,8 +679,6 @@ export default {
           imgsz: 1280
         }
       },
-      connectLabel: "Connect",
-      connectionText: "Stream disconnected",
       selectedSnapshot: null,
       saveDialog: {
         open: false,
@@ -694,35 +694,19 @@ export default {
       },
       videoElements: {},
       playbackStates: {},
+      analysisLoopBusy: false,
       logIndex: 0,
       timer: null,
       clockTimer: null,
       metrics: {
-        MV: 12,
-        AMV: 15,
-        LMV: 23,
-        AFV: 7,
-        CV: 4,
-        MCV: 6
+        MV: 0,
+        AMV: 0,
+        LMV: 0,
+        AFV: 0,
+        CV: 0,
+        MCV: 0
       },
-      logs: [
-        { id: 1, time: "10:15:30", message: "เชื่อมต่อแหล่งข้อมูล: https://example.com/stream" },
-        { id: 2, time: "10:15:31", message: "โหลดโมเดล AI สำเร็จ" },
-        { id: 3, time: "10:15:32", message: "เริ่มการประมวลผลวิดีโอ" },
-        { id: 8, time: "10:15:34", message: "ตรวจพบ MV <strong>(Confidence: 0.93)</strong>" },
-        { id: 4, time: "10:15:35", message: "ตรวจพบ AMV <strong>(Confidence: 0.92)</strong>" },
-        { id: 5, time: "10:15:36", message: "ตรวจพบ LMV <strong>(Confidence: 0.88)</strong>" },
-        { id: 6, time: "10:15:37", message: "ตรวจพบ AMV <strong>(Confidence: 0.95)</strong>" },
-        { id: 7, time: "10:15:40", message: "ตรวจพบ AFV <strong>(Confidence: 0.90)</strong>" }
-      ],
-      generatedEvents: [
-        "ตรวจพบ MV <strong>(Confidence: 0.93)</strong>",
-        "ตรวจพบ MCV <strong>(Confidence: 0.87)</strong>",
-        "ตรวจพบ CV <strong>(Confidence: 0.91)</strong>",
-        "อัปเดตกรอบตรวจจับบนภาพ Live",
-        "สร้าง Snapshot อัตโนมัติ",
-        "ตรวจพบ AMV <strong>(Confidence: 0.94)</strong>"
-      ],
+      logs: [],
       targetClassOptions: [
         { id: "MV", detail: "(Military Vehicles)", color: "#6fe58e" },
         { id: "AMV", detail: "(Armored Military Vehicle)", color: "#2ed36f" },
@@ -862,25 +846,156 @@ export default {
     themeTitle() {
       return this.theme === "light" ? "เปลี่ยนเป็นโหมดมืด" : "เปลี่ยนเป็นโหมดสว่าง";
     },
+    sourceModeOptions() {
+      return [
+        {
+          id: "image",
+          title: "รูปภาพ",
+          icon: "bi-image"
+        },
+        {
+          id: "video",
+          title: "วิดีโอ",
+          icon: "bi-film"
+        },
+        {
+          id: "stream",
+          title: "Live Stream",
+          icon: "bi-broadcast-pin"
+        }
+      ];
+    },
     fileAccept() {
+      if (this.sourceMode === "image") return "image/*";
+      if (this.sourceMode === "video") return "video/*";
       return "video/*,image/*";
     },
+    inputPanelDescription() {
+      return "เลือกประเภทข้อมูล แล้วค่อยเริ่ม Detect";
+    },
+    streamPlaceholder() {
+      return "วาง rtsp:// หรือ https:// ของสตรีม";
+    },
+    sourceListTitle() {
+      if (this.sourceMode === "image") return "รูปภาพที่เลือก";
+      if (this.sourceMode === "video") return "วิดีโอที่เลือก";
+      return "รายการ Live Stream";
+    },
+    sourceSlotUploadHint() {
+      if (this.sourceMode === "image") {
+        return "เลือกรูปภาพแล้วรอกด Detect";
+      }
+      return "เลือกวิดีโอแล้วรอกด Detect";
+    },
+    filePickerLabel() {
+      if (this.sourceMode === "image") return "เลือกรูปภาพ";
+      return "เลือกวิดีโอ";
+    },
+    filePickerHint() {
+      if (this.sourceMode === "image") return "อัปโหลดได้ทีละ 1 รูป";
+      return "อัปโหลดได้ทีละ 1 วิดีโอ";
+    },
+    primarySourceSlot() {
+      return this.sourceSlots[0] || null;
+    },
+    singleUploadTitle() {
+      if (this.primarySourceSlot?.fileName) return this.primarySourceSlot.fileName;
+      return this.filePickerLabel;
+    },
+    singleUploadDescription() {
+      if (this.primarySourceSlot?.fileName) {
+        return this.sourceFileMetaText(this.primarySourceSlot);
+      }
+      return this.filePickerHint;
+    },
+    singleUploadButtonLabel() {
+      if (this.primarySourceSlot?.fileName) return "เปลี่ยนไฟล์";
+      return "เลือกไฟล์";
+    },
+    sourceModeLabel() {
+      if (this.sourceMode === "image") return "โหมดรูปภาพ";
+      if (this.sourceMode === "video") return "โหมดวิดีโอ";
+      return "โหมด Live Stream";
+    },
+    queuedSourceCount() {
+      return this.sourceSlots.filter((slot) => this.slotHasSource(slot)).length;
+    },
+    maxSourceSlots() {
+      return this.sourceMode === "stream" ? 4 : 1;
+    },
+    showAddSourceButton() {
+      return this.sourceMode === "stream";
+    },
+    canAddMoreSources() {
+      return this.showAddSourceButton && this.sourceSlots.length < this.maxSourceSlots;
+    },
+    queueCountLabel() {
+      if (this.sourceMode === "image") {
+        return this.queuedSourceCount ? `${this.queuedSourceCount} image selected` : "Choose up to 4 images";
+      }
+      if (this.sourceMode === "video") {
+        return this.queuedSourceCount ? `${this.queuedSourceCount} video selected` : "Choose up to 4 videos";
+      }
+      return this.queuedSourceCount ? `${this.queuedSourceCount} source ready` : "Add up to 4 URLs";
+    },
+    sourceQueueTitle() {
+      if (!this.queuedSourceCount) {
+        if (this.sourceMode === "image") return "ยังไม่มีภาพในคิว";
+        if (this.sourceMode === "video") return "ยังไม่มีวิดีโอในคิว";
+        return "ยังไม่มี source ในคิว";
+      }
+      if (this.running) {
+        return `กำลังตรวจจับ ${this.queuedSourceCount} source`;
+      }
+      return `${this.queuedSourceCount} source พร้อมรอ Detect`;
+    },
+    sourceQueueDescription() {
+      if (!this.queuedSourceCount) {
+        if (this.sourceMode === "image") {
+          return "อัปโหลดรูปภาพได้สูงสุด 4 รายการในรอบเดียว";
+        }
+        if (this.sourceMode === "video") {
+          return "อัปโหลดวิดีโอได้สูงสุด 4 รายการในรอบเดียว";
+        }
+        return "เพิ่ม URL, RTSP หรือ video link เพื่อเตรียมคิวตรวจจับ";
+      }
+      if (this.running) {
+        return "ระบบกำลังใช้โมเดลกับ source ที่อยู่ในคิวนี้";
+      }
+      return "source ที่เลือกจะยังไม่เริ่มทำงานจนกว่าจะกดปุ่ม Detect";
+    },
     sourceStatus() {
-      const count = this.activeSources.length;
-      if (this.inputMode === "url") return count ? `${count} stream source${count > 1 ? "s" : ""} ready` : "Stream disconnected";
-      return count ? `${count} media source${count > 1 ? "s" : ""} ready` : "Select up to 4 video or picture files";
+      if (!this.queuedSourceCount) {
+        if (this.sourceMode === "image") return "ยังไม่มีรูปภาพที่เลือก";
+        if (this.sourceMode === "video") return "ยังไม่มีวิดีโอที่เลือก";
+        return "ยังไม่มี URL หรือ stream";
+      }
+      if (this.running) {
+        return `กำลังตรวจจับ ${this.queuedSourceCount} รายการ`;
+      }
+      if (this.sourceMode === "image") return `พร้อม Detect ${this.queuedSourceCount} รูป`;
+      if (this.sourceMode === "video") return `พร้อม Detect ${this.queuedSourceCount} วิดีโอ`;
+      return `พร้อม Detect ${this.queuedSourceCount} stream`;
+    },
+    sourceHelpText() {
+      if (this.running) return "ระบบกำลังใช้โมเดลตรวจจับ";
+      if (this.sourceMode === "image") return "โหมดนี้อัปโหลดได้ทีละ 1 รูป";
+      if (this.sourceMode === "video") return "โหมดนี้อัปโหลดได้ทีละ 1 วิดีโอ";
+      return "เพิ่มสตรีมได้สูงสุด 4 รายการ";
     },
     sourceStatusClass() {
-      return this.activeSources.length ? "is-connected" : "is-disconnected";
+      if (this.running) return "is-processing";
+      return this.queuedSourceCount ? "is-connected" : "is-disconnected";
     },
     activeSources() {
       return this.sourceSlots
-        .filter((slot) => this.inputMode === "url" ? slot.url.trim() : slot.fileName)
+        .filter((slot) => this.slotHasSource(slot))
+        .filter((slot) => this.isSlotActive(slot))
         .map((slot, index) => ({
           id: slot.id,
-          label: this.inputMode === "url" ? slot.url.trim() : slot.fileName,
-          src: this.inputMode === "url" ? slot.url.trim() : slot.fileUrl,
-          mediaKind: this.inputMode === "url" ? "stream" : slot.fileType,
+          label: this.sourceMode === "stream" ? slot.url.trim() : slot.fileName,
+          src: this.sourceMode === "stream" ? slot.url.trim() : slot.fileUrl,
+          mediaKind: slot.analysis?.media?.sourceKind || this.inferSlotMediaKind(slot),
           cameraLabel: `CAM ${index + 1}`,
           analysis: slot.analysis || null,
           file: slot.file || null
@@ -895,36 +1010,24 @@ export default {
         : [{ id: "default-source", label: "Preview source", cameraLabel: "CAM 1" }];
     },
     sourceMetrics() {
-      return this.monitoringSources.map((source, index) => {
-        const scale = index + 1;
-        const fallbackMetrics = {
-          MV: this.metrics.MV + index,
-          AMV: this.metrics.AMV + index * 2,
-          LMV: Math.max(0, this.metrics.LMV - scale),
-          AFV: this.metrics.AFV + index,
-          CV: this.metrics.CV + (index % 2),
-          MCV: this.metrics.MCV + index
-        };
+      return this.monitoringSources.map((source) => {
         const metrics = source.analysis?.metrics
           ? { ...this.emptyMetrics(), ...source.analysis.metrics }
-          : fallbackMetrics;
-        const total = source.analysis?.total ?? Object.values(metrics).reduce((sum, value) => sum + value, 0);
+          : this.emptyMetrics();
+        const total = source.analysis?.total ?? 0;
 
         return { source, metrics, total };
       });
     },
     sourceTimelineGroups() {
-      const timelineSources = this.inputMode === "url"
-        ? this.monitoringSources
-        : this.monitoringSources.filter((source) => this.isSourcePlayable(source));
-
-      return timelineSources.map((source) => {
+      return this.monitoringSources.map((source) => {
         const rawEvents = source.analysis?.timelineEvents?.length
           ? source.analysis.timelineEvents
-          : (this.inputMode === "url" ? this.buildMockTimelineEvents() : []);
+          : [];
+        const maxEventTime = rawEvents.reduce((maxTime, event) => Math.max(maxTime, Number(event?.timeSec || 0)), 0);
         const durationSec = source.analysis?.durationSec
           ?? source.analysis?.media?.durationSec
-          ?? (this.inputMode === "url" ? 600 : 0);
+          ?? maxEventTime;
         const events = rawEvents
           .filter((event) => this.shouldShowTimelineEvent(event))
           .map((event, index) => this.decorateDetectionMoment(event, index));
@@ -937,13 +1040,13 @@ export default {
       });
     },
     showTimelinePanel() {
-      return this.sourceTimelineGroups.length > 0;
+      return this.activeSources.length > 0;
     },
     sourceSnapshots() {
       return this.monitoringSources.map((source) => {
         const rawSnapshots = source.analysis?.snapshots?.length
           ? source.analysis.snapshots
-          : (this.inputMode === "url" ? this.buildMockSnapshots() : []);
+          : [];
         const snapshots = rawSnapshots
           .filter((snapshot) => this.shouldShowTimelineEvent(snapshot))
           .map((snapshot, index) => this.decorateDetectionMoment(snapshot, index));
@@ -984,47 +1087,67 @@ export default {
       return this.formatModelSize(this.selectedModelMeta.sizeBytes);
     },
     backendStatusText() {
-      if (this.inputMode === "url") return "Mock stream mode";
       if (this.inferenceServer.status === "ready") return "Backend ready";
       if (this.inferenceServer.status === "offline") return "Backend offline";
       return "Checking backend";
     },
     backendStatusClass() {
       return {
-        "is-ready": this.inputMode === "url" || this.inferenceServer.status === "ready",
-        "is-missing": this.inputMode === "file" && this.inferenceServer.status === "offline",
-        "is-checking": this.inputMode === "file" && this.inferenceServer.status === "checking"
+        "is-ready": this.inferenceServer.status === "ready",
+        "is-missing": this.inferenceServer.status === "offline",
+        "is-checking": this.inferenceServer.status === "checking"
       };
     },
     modelHintText() {
       if (this.selectedModelMeta?.availability === "missing") {
         return "ยังไม่พบ /public/models/rm-img.pt ในโปรเจ็กต์";
       }
-      if (this.inputMode === "file" && this.inferenceServer.status !== "ready") {
+      if (this.inferenceServer.status !== "ready") {
         return "เปิด backend ด้วย `npm run backend` ก่อน แล้วจึงกด Start Detection";
       }
-      if (this.inputMode === "file") {
+      if (this.sourceMode === "image") {
         const { conf, iou, imgsz } = this.inferenceServer.inference || {};
-        return `โหมด VIDEO / PICTURE จะส่งไฟล์เข้า rm-img.pt เพื่อรัน detection จริง (conf ${conf}, iou ${iou}, imgsz ${imgsz})`;
+        return `โหมด Upload Image จะส่งภาพเข้า rm-img.pt เพื่อรัน detection จริง (conf ${conf}, iou ${iou}, imgsz ${imgsz})`;
       }
-      return "โหมด URL / STREAM ยังใช้การจำลองผลตรวจจับเหมือนเดิม";
+      if (this.sourceMode === "video") {
+        const { conf, iou, imgsz } = this.inferenceServer.inference || {};
+        return `โหมด Upload Video จะส่งวิดีโอเข้า rm-img.pt เพื่อรัน detection จริง (conf ${conf}, iou ${iou}, imgsz ${imgsz})`;
+      }
+      const { conf, iou, imgsz } = this.inferenceServer.inference || {};
+      return `โหมด URL / STREAM จะส่งลิงก์เข้า backend เพื่อรัน detection จริงจากภาพหรือสตรีมที่เข้าถึงได้ (conf ${conf}, iou ${iou}, imgsz ${imgsz})`;
     },
     modelReady() {
       return this.selectedModelMeta?.availability === "ready";
     },
     backendReady() {
-      return this.inputMode === "url" || this.inferenceServer.status === "ready";
+      return this.inferenceServer.status === "ready";
     },
     canRunDetection() {
-      return Boolean(this.activeSources.length && this.selectedTargets.length && this.selectedModel && this.modelReady && this.backendReady);
+      return Boolean(this.queuedSourceCount && this.selectedTargets.length && this.selectedModel && this.modelReady && this.backendReady);
     },
     runDisabledReason() {
-      if (!this.activeSources.length) return "Input source required";
-      if (!this.selectedTargets.length) return "Target selection required";
-      if (!this.selectedModel) return "Detection model required";
+      if (!this.queuedSourceCount) return "กรุณาเลือกข้อมูลก่อน";
+      if (!this.selectedTargets.length) return "กรุณาเลือกเป้าหมาย";
+      if (!this.selectedModel) return "Detection system is not ready";
       if (!this.modelReady) return "rm-img.pt is not ready";
       if (!this.backendReady) return "Inference backend is not ready";
-      return "Start detection";
+      return "พร้อมเริ่ม Detect";
+    },
+    detectActionHint() {
+      if (this.running) {
+        return "กำลังตรวจจับจากรายการนี้";
+      }
+      return "ยังไม่เริ่มทำงานจนกว่าจะกด Detect";
+    },
+    addSourceLabel() {
+      if (this.sourceMode === "image") return "เพิ่มรูป";
+      if (this.sourceMode === "video") return "เพิ่มวิดีโอ";
+      return "เพิ่มสตรีม";
+    },
+    targetSelectionSummary() {
+      if (!this.selectedTargets.length) return "ยังไม่เลือกเป้าหมาย";
+      if (this.allTargetsSelected) return `เลือกครบ ${this.targetClassOptions.length} ประเภท`;
+      return `เลือก ${this.selectedTargets.length} จาก ${this.targetClassOptions.length} ประเภท`;
     },
     targetTypes() {
       return TARGET_TYPES;
@@ -1039,7 +1162,8 @@ export default {
       return this.running && !this.activeSources.length;
     },
     showGlobalPlaybackBar() {
-      return !this.activeSources.length && this.inputMode === "url";
+      const primarySource = this.monitoringSources[0];
+      return !this.activeSources.length && this.isVideoSource(primarySource);
     },
     canSaveData() {
       return Boolean(this.activeSources.length && this.selectedTargets.length && this.selectedModel && this.running);
@@ -1047,7 +1171,7 @@ export default {
     saveDisabledReason() {
       if (!this.activeSources.length) return "Input source required";
       if (!this.selectedTargets.length) return "Target selection required";
-      if (!this.selectedModel) return "Detection model required";
+      if (!this.selectedModel) return "Detection system is not ready";
       if (!this.running) return "Start detection before saving";
       return "Save detection data";
     },
@@ -1157,7 +1281,7 @@ export default {
       };
     },
     liveStatusMetrics() {
-      return this.sourceMetrics[0] || { metrics: this.metrics, total: this.totalCount };
+      return this.sourceMetrics[0] || { metrics: this.emptyMetrics(), total: 0 };
     },
     liveStatusCards() {
       const metrics = this.liveStatusMetrics.metrics;
@@ -1165,20 +1289,27 @@ export default {
       const detections = primaryAnalysis?.detections || [];
       const averageConfidence = detections.length
         ? Math.round((detections.reduce((sum, detection) => sum + Number(detection.confidence || 0), 0) / detections.length) * 100)
-        : 91;
-      const sourceFps = primaryAnalysis?.media?.fps ? Math.round(primaryAnalysis.media.fps) : 31;
+        : 0;
+      const sourceFps = primaryAnalysis?.media?.fps ? Math.round(primaryAnalysis.media.fps) : "-";
+      const latencyMs = primaryAnalysis?.elapsedMs ? Math.round(primaryAnalysis.elapsedMs) : "-";
       return [
-        { id: "total-targets", label: "TOTAL TARGETS", value: this.liveStatusMetrics.total, note: "▲ 12% vs last hour", trendClass: "trend-up" },
-        { id: "mv", label: "MV", value: metrics.MV, note: "▲ 9%", trendClass: "trend-up" },
-        { id: "amv", label: "AMV", value: metrics.AMV, note: "▲ 7%", trendClass: "trend-up" },
-        { id: "lmv", label: "LMV", value: metrics.LMV, note: "▲ 15%", trendClass: "trend-warn" },
-        { id: "afv", label: "AFV", value: metrics.AFV, note: "▼ 3%", trendClass: "trend-down" },
-        { id: "cv", label: "CV", value: metrics.CV, note: "▲ 2%", trendClass: "trend-up" },
-        { id: "mcv", label: "MCV", value: metrics.MCV, note: "▲ 8%", trendClass: "trend-up" },
-        { id: "fps", label: "FPS", value: sourceFps, note: primaryAnalysis?.sourceKind === "video" ? "Source video" : "Real-time", trendClass: "trend-neutral" },
-        { id: "latency", label: "LATENCY", value: 14, unit: "ms", note: "Real-time", trendClass: "trend-neutral" },
-        { id: "confidence", label: "CONFIDENCE AVG", value: averageConfidence, unit: "%", note: primaryAnalysis ? "From detections" : "", trendClass: "trend-neutral" }
+        { id: "total-targets", label: "TOTAL TARGETS", value: this.liveStatusMetrics.total, note: this.activeSources.length ? "Real detections" : "Waiting for source", trendClass: "trend-up" },
+        { id: "mv", label: "MV", value: metrics.MV, note: "Model result", trendClass: "trend-up" },
+        { id: "amv", label: "AMV", value: metrics.AMV, note: "Model result", trendClass: "trend-up" },
+        { id: "lmv", label: "LMV", value: metrics.LMV, note: "Model result", trendClass: "trend-warn" },
+        { id: "afv", label: "AFV", value: metrics.AFV, note: "Model result", trendClass: "trend-down" },
+        { id: "cv", label: "CV", value: metrics.CV, note: "Model result", trendClass: "trend-up" },
+        { id: "mcv", label: "MCV", value: metrics.MCV, note: "Model result", trendClass: "trend-up" },
+        { id: "fps", label: "FPS", value: sourceFps, note: primaryAnalysis?.media?.sourceKind === "video" ? "Source video" : "Detected source", trendClass: "trend-neutral" },
+        { id: "latency", label: "LATENCY", value: latencyMs, unit: latencyMs === "-" ? "" : "ms", note: primaryAnalysis ? "Backend response" : "Awaiting run", trendClass: "trend-neutral" },
+        { id: "confidence", label: "CONFIDENCE AVG", value: averageConfidence, unit: "%", note: primaryAnalysis ? "From preview detections" : "Awaiting run", trendClass: "trend-neutral" }
       ];
+    },
+    overviewStatusCards() {
+      const preferredCardOrder = ["confidence", "fps", "latency", "mv", "amv", "lmv"];
+      return preferredCardOrder
+        .map((cardId) => this.liveStatusCards.find((card) => card.id === cardId))
+        .filter(Boolean);
     }
   },
   watch: {
@@ -1242,6 +1373,77 @@ export default {
       if (sizeMb >= 1024) return `${(sizeMb / 1024).toFixed(2)} GB`;
       return `${sizeMb.toFixed(2)} MB`;
     },
+    slotHasSource(slot) {
+      if (this.sourceMode === "stream") {
+        return Boolean(slot?.url?.trim());
+      }
+      return Boolean(slot?.fileName && slot?.file);
+    },
+    isSlotActive(slot) {
+      return Boolean(slot?.analysis) || (this.running && this.slotHasSource(slot));
+    },
+    sourceSlotState(slot) {
+      if (slot?.analysis?.status === "processing") return "processing";
+      if (slot?.analysis?.status === "error") return "error";
+      if (slot?.analysis?.status === "ready") return "ready";
+      if (this.slotHasSource(slot)) return "queued";
+      return "empty";
+    },
+    sourceSlotStateLabel(slot) {
+      return {
+        empty: "ว่าง",
+        queued: "พร้อม",
+        processing: "กำลังตรวจ",
+        ready: "เสร็จแล้ว",
+        error: "ผิดพลาด"
+      }[this.sourceSlotState(slot)] || "ว่าง";
+    },
+    sourceFileMetaText(slot) {
+      const fileType = String(slot?.fileType || "");
+      const kind = this.sourceMode === "image"
+        ? "รูปภาพ"
+        : (this.sourceMode === "video"
+          ? "วิดีโอ"
+          : (fileType.startsWith("video/") ? "วิดีโอ" : (fileType.startsWith("image/") ? "รูปภาพ" : "ไฟล์")));
+      const size = slot?.file?.size ? this.formatFileSize(slot.file.size) : "";
+      return [kind, size, "พร้อม Detect"].filter(Boolean).join(" • ");
+    },
+    mapRawClassToTarget(label) {
+      const normalized = String(label || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+      const mapping = {
+        mv: "MV",
+        militaryvehicle: "MV",
+        militaryvehicles: "MV",
+        vehicle: "MV",
+        vehicles: "MV",
+        venhicle: "MV",
+        venhicles: "MV",
+        amv: "AMV",
+        armoredmilitaryvehicle: "AMV",
+        lmv: "LMV",
+        lightmilitaryvehicle: "LMV",
+        afv: "AFV",
+        armoredfightingvehicle: "AFV",
+        cv: "CV",
+        combatvehicle: "CV",
+        mcv: "MCV",
+        militarycargovehicle: "MCV"
+      };
+      return mapping[normalized] || String(label || "").toUpperCase();
+    },
+    appendFilteredDetectionHint(payload, sourceLabel) {
+      const rawTotal = Number(payload?.rawTotal || 0);
+      const filteredOutTotal = Number(payload?.filteredOutTotal || 0);
+      if (!rawTotal || !filteredOutTotal || Number(payload?.total || 0) > 0) return;
+
+      const detectedTargetSummary = Object.entries(payload?.classSummary || {})
+        .map(([label, count]) => `${this.mapRawClassToTarget(label)}: ${count}`)
+        .join(", ");
+
+      this.appendLog(
+        `${sourceLabel}: โมเดลตรวจจับได้ <strong>${rawTotal}</strong> รายการ แต่ target ที่เลือกไม่ตรง${detectedTargetSummary ? ` (${detectedTargetSummary})` : ""} จึงแสดงผลเป็น <strong>0</strong>`
+      );
+    },
     async resolveBundledModels() {
       const resolvedModels = await Promise.all(this.detectionModels.map(async (model) => {
         try {
@@ -1268,20 +1470,6 @@ export default {
       }
     },
     async checkInferenceServer() {
-      if (this.inputMode === "url") {
-        this.inferenceServer = {
-          status: "ready",
-          message: "Stream mode uses mock detection",
-          models: [],
-          inference: {
-            conf: 0.7,
-            iou: 0.7,
-            imgsz: 1280
-          }
-        };
-        return;
-      }
-
       this.inferenceServer = {
         ...this.inferenceServer,
         status: "checking",
@@ -1329,6 +1517,7 @@ export default {
         }),
         message
       });
+      this.logIndex += 1;
     },
     getAllTargetIds() {
       return this.targetClassOptions.map((target) => target.id);
@@ -1383,28 +1572,30 @@ export default {
         boxClass: moment?.boxClass || `popup-box-${(index % 4) + 1}`
       };
     },
-    buildMockTimelineEvents() {
-      return [
-        { left: 2, type: "MV", time: "00:00:12", confidence: 0.93, summaryText: "MV: 1", total: 1 },
-        { left: 9, type: "AMV", time: "00:00:54", confidence: 0.92, summaryText: "AMV: 1", total: 1 },
-        { left: 14, type: "LMV", time: "00:01:24", confidence: 0.88, summaryText: "LMV: 1", total: 1 },
-        { left: 21, type: "MCV", time: "00:02:06", confidence: 0.87, summaryText: "MCV: 1", total: 1 },
-        { left: 31, type: "AFV", time: "00:03:06", confidence: 0.9, summaryText: "AFV: 1", total: 1 },
-        { left: 46, type: "CV", time: "00:04:36", confidence: 0.91, summaryText: "CV: 1", total: 1 },
-        { left: 57, type: "AMV", time: "00:05:42", confidence: 0.94, summaryText: "AMV: 1", total: 1 },
-        { left: 69, type: "AFV", time: "00:06:54", confidence: 0.9, summaryText: "AFV: 1", total: 1 },
-        { left: 82, type: "CV", time: "00:08:12", confidence: 0.91, summaryText: "CV: 1", total: 1 },
-        { left: 94, type: "MCV", time: "00:09:24", confidence: 0.87, summaryText: "MCV: 1", total: 1 }
-      ];
-    },
-    buildMockSnapshots() {
-      return this.buildMockTimelineEvents().map((event) => ({
-        ...event,
-        image: this.fallbackPreviewImage
-      }));
-    },
     buildSourceLogs(source) {
       const analysisEvents = source.analysis?.timelineEvents || source.analysis?.snapshots || [];
+      const sourceLogs = this.visibleLogs.filter((row) => row.message.includes(`${source.cameraLabel}:`));
+      const generalLogs = this.monitoringSources.length === 1
+        ? this.visibleLogs.filter((row) => !row.message.includes("CAM "))
+        : [];
+      if (source.analysis?.status === "processing") {
+        return [
+          {
+            id: `${source.id}-processing`,
+            time: "--:--:--",
+            message: "กำลังวิเคราะห์ข้อมูลจาก backend"
+          }
+        ];
+      }
+      if (source.analysis?.status === "error") {
+        return [
+          {
+            id: `${source.id}-error`,
+            time: "--:--:--",
+            message: source.analysis?.error || "ตรวจจับไม่สำเร็จ"
+          }
+        ];
+      }
       if (source.analysis && !analysisEvents.length) {
         return [
           {
@@ -1414,7 +1605,17 @@ export default {
           }
         ];
       }
-      if (!analysisEvents.length) return this.visibleLogs.slice(0, 5);
+      if (!analysisEvents.length && sourceLogs.length) return sourceLogs.slice(0, 5);
+      if (!analysisEvents.length && generalLogs.length) return generalLogs.slice(0, 5);
+      if (!analysisEvents.length) {
+        return [
+          {
+            id: `${source.id}-idle`,
+            time: "--:--:--",
+            message: this.running ? "รอผลตรวจจับล่าสุดจาก backend" : "ยังไม่มีผลตรวจจับสำหรับแหล่งข้อมูลนี้"
+          }
+        ];
+      }
 
       return analysisEvents
         .slice(-5)
@@ -1570,7 +1771,15 @@ export default {
         .sort((left, right) => Number(left.timeSec || 0) - Number(right.timeSec || 0));
     },
     currentSourceEvent(source) {
-      if (!this.isVideoSource(source)) return null;
+      if (!source?.analysis) return null;
+
+      if (!this.isSourcePlayable(source)) {
+        const fallbackEvents = source?.analysis?.timelineEvents?.length
+          ? source.analysis.timelineEvents
+          : (source?.analysis?.snapshots || []);
+        if (!fallbackEvents.length) return null;
+        return this.decorateDetectionMoment(fallbackEvents[fallbackEvents.length - 1], fallbackEvents.length - 1);
+      }
 
       const events = this.sourceTimelineEvents(source);
       if (!events.length) return null;
@@ -1593,11 +1802,18 @@ export default {
       return activeEvent;
     },
     currentSourceDetections(source) {
+      if (!this.isSourcePlayable(source)) {
+        return (source?.analysis?.detections || []).slice(0, 12);
+      }
       return (this.currentSourceEvent(source)?.detections || []).slice(0, 12);
     },
     sourceDetectionNote(source) {
       const activeEvent = this.currentSourceEvent(source);
       if (!activeEvent) {
+        const media = source.analysis?.media || {};
+        if (media.sourceKind === "image") {
+          return `${source.analysis?.total || 0} detections on image`;
+        }
         return `${source.analysis?.total || 0} detections`;
       }
       return `${activeEvent.time} · ${activeEvent.summaryText || `${activeEvent.total} detections`}`;
@@ -1619,16 +1835,36 @@ export default {
       };
     },
     isVideoSource(source) {
-      const mediaKind = source?.mediaKind || "";
-      return mediaKind.startsWith("video");
+      return source?.mediaKind === "video";
     },
     isSourcePlayable(source) {
-      const mediaKind = source?.mediaKind || "";
-      return mediaKind === "stream" || mediaKind.startsWith("video");
+      return this.sourceMode === "video" && this.isVideoSource(source);
     },
     isSourceProcessing(source) {
-      if (this.inputMode === "url") return this.running;
       return source?.analysis?.status === "processing";
+    },
+    inferUrlSourceKind(url) {
+      const normalizedUrl = String(url || "").trim().toLowerCase();
+      if (!normalizedUrl) return "";
+      if (/\.(jpg|jpeg|png|bmp|webp)(?:$|\?)/i.test(normalizedUrl)) return "image";
+      if (/\.(mp4|mov|avi|mkv|m4v|webm)(?:$|\?)/i.test(normalizedUrl)) return "video";
+      if (normalizedUrl.startsWith("rtsp://") || normalizedUrl.startsWith("rtmp://")) return "stream";
+      if (normalizedUrl.includes(".m3u8")) return "stream";
+      return "stream";
+    },
+    inferSlotMediaKind(slot) {
+      if (this.sourceMode === "stream") return this.inferUrlSourceKind(slot?.url);
+      if (this.sourceMode === "image") return "image";
+      if (this.sourceMode === "video") return "video";
+      const fileType = String(slot?.fileType || "").toLowerCase();
+      if (fileType.startsWith("video/")) return "video";
+      if (fileType.startsWith("image/")) return "image";
+      return "";
+    },
+    sourcePreviewImage(source) {
+      if (source?.analysis?.previewImage) return source.analysis.previewImage;
+      if (this.sourceMode !== "stream") return source?.src || this.fallbackPreviewImage;
+      return source?.mediaKind === "image" ? (source?.src || this.fallbackPreviewImage) : this.fallbackPreviewImage;
     },
     targetTypeIconClass(type) {
       return {
@@ -1788,32 +2024,34 @@ export default {
         hour12: false
       });
     },
-    connectStream() {
-      if (!this.activeSources.length) {
-        this.connectionText = "Stream disconnected";
-        return;
-      }
-
-      this.connectionText = "Stream connected";
-      this.connectLabel = "Connected";
-
-      window.setTimeout(() => {
-        this.connectLabel = "Connect";
-      }, 1400);
-    },
-    setInputMode(mode) {
+    setSourceMode(mode) {
+      const nextInputMode = mode === "stream" ? "url" : "file";
       window.clearInterval(this.timer);
       this.running = false;
-      this.inputMode = mode;
+      this.analysisLoopBusy = false;
+      this.sourceMode = mode;
+      this.inputMode = nextInputMode;
       this.resetSourceSlots();
+      this.metrics = this.emptyMetrics();
+      this.logs = [];
       this.checkInferenceServer();
     },
+    setInputMode(mode) {
+      if (mode === "url") {
+        this.setSourceMode("stream");
+        return;
+      }
+      this.setSourceMode(this.sourceMode === "image" ? "image" : "video");
+    },
     addSourceSlot() {
-      if (this.sourceSlots.length >= 4) return;
+      if (this.sourceSlots.length >= this.maxSourceSlots) return;
       this.sourceSlots.push(this.createSourceSlot(this.nextSourceId));
       this.nextSourceId += 1;
     },
-    removeSourceSlot(slot) {
+    isSourceRemoveDisabled(slot) {
+      return this.sourceSlots.length === 1 && !this.slotHasSource(slot) && !slot?.analysis;
+    },
+    releaseSourceSlotResources(slot) {
       if (slot.fileUrl) URL.revokeObjectURL(slot.fileUrl);
       if (this.videoElements[slot.id]) {
         try {
@@ -1825,10 +2063,28 @@ export default {
       this.videoElements = remainingVideos;
       const { [slot.id]: _playbackRemoved, ...remainingPlayback } = this.playbackStates;
       this.playbackStates = remainingPlayback;
+    },
+    clearSourceSlot(slot) {
+      this.releaseSourceSlotResources(slot);
+      slot.url = "";
+      slot.file = null;
+      slot.fileName = "";
+      slot.fileUrl = "";
+      slot.fileType = "";
+      slot.analysis = null;
+      this.recalculateMetricsFromAnalysis();
+    },
+    removeSourceSlot(slot) {
+      if (this.sourceSlots.length === 1) {
+        this.clearSourceSlot(slot);
+        return;
+      }
+      this.releaseSourceSlotResources(slot);
       this.sourceSlots = this.sourceSlots.filter((item) => item.id !== slot.id);
       if (!this.sourceSlots.length) {
         this.addSourceSlot();
       }
+      this.recalculateMetricsFromAnalysis();
     },
     resetSourceSlots() {
       this.sourceSlots.forEach((slot) => {
@@ -1846,8 +2102,7 @@ export default {
       this.nextSourceId = 2;
       this.streamUrl = "";
       this.selectedFileName = "";
-      this.connectionText = "Stream disconnected";
-      this.connectLabel = "Connect";
+      this.recalculateMetricsFromAnalysis();
     },
     handleFileSelect(event, slot) {
       const [file] = event.target.files;
@@ -1857,6 +2112,7 @@ export default {
       slot.fileUrl = file ? URL.createObjectURL(file) : "";
       slot.fileType = file ? file.type : "";
       slot.analysis = null;
+      this.recalculateMetricsFromAnalysis();
     },
     metricsToSummaryText(metrics) {
       return Object.entries(metrics)
@@ -1866,20 +2122,16 @@ export default {
     },
     recalculateMetricsFromAnalysis() {
       const aggregate = this.emptyMetrics();
-      let hasAnalysis = false;
 
       this.sourceSlots.forEach((slot) => {
         const metrics = slot.analysis?.metrics;
         if (!metrics) return;
-        hasAnalysis = true;
         Object.keys(aggregate).forEach((key) => {
           aggregate[key] += Number(metrics[key] || 0);
         });
       });
 
-      if (hasAnalysis) {
-        this.metrics = aggregate;
-      }
+      this.metrics = aggregate;
     },
     async analyzeFileSource(slot) {
       if (!slot.file) return;
@@ -1893,7 +2145,7 @@ export default {
 
       const formData = new FormData();
       formData.append("source", slot.file, slot.file.name);
-      formData.append("sourceKind", slot.file.type.startsWith("video") ? "video" : "image");
+      formData.append("sourceKind", this.sourceMode === "video" ? "video" : "image");
       formData.append("selectedTargets", this.selectedTargets.join(","));
       formData.append("modelId", this.selectedModelMeta?.id || "rm-img");
       formData.append("modelFileName", this.selectedModelMeta?.fileName || "rm-img.pt");
@@ -1910,6 +2162,7 @@ export default {
       slot.analysis = {
         ...payload,
         status: "ready",
+        elapsedMs: Number(payload.elapsedMs || 0),
         previewImage: payload.previewImage || slot.fileUrl
       };
 
@@ -1921,6 +2174,61 @@ export default {
       this.appendLog(
         `${sourceLabel}: ใช้โมเดล <strong>${payload.model?.fileName || "rm-img.pt"}</strong> ตรวจจับได้ <strong>${payload.total}</strong> เป้าหมาย${summaryText ? ` (${summaryText})` : ""}${timelineCount ? ` · timeline ${timelineCount} จุด` : ""}${snapshotCount ? ` · snapshots ${snapshotCount}` : ""}`
       );
+      this.appendFilteredDetectionHint(payload, sourceLabel);
+    },
+    async analyzeUrlSource(slot) {
+      const sourceUrl = slot.url.trim();
+      if (!sourceUrl) return;
+
+      slot.analysis = {
+        ...(slot.analysis || {}),
+        status: "processing",
+        error: "",
+        previewImage: slot.analysis?.previewImage || (this.inferUrlSourceKind(sourceUrl) === "image" ? sourceUrl : this.fallbackPreviewImage),
+        metrics: this.emptyMetrics(),
+        total: 0
+      };
+      this.recalculateMetricsFromAnalysis();
+
+      const formData = new FormData();
+      formData.append("sourceUrl", sourceUrl);
+      formData.append("sourceKind", this.inferUrlSourceKind(sourceUrl) || "stream");
+      formData.append("selectedTargets", this.selectedTargets.join(","));
+      formData.append("modelId", this.selectedModelMeta?.id || "rm-img");
+      formData.append("modelFileName", this.selectedModelMeta?.fileName || "rm-img.pt");
+
+      const response = await fetch(`${this.getInferenceApiBase()}/api/detect`, {
+        method: "POST",
+        body: formData
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        slot.analysis = {
+          ...(slot.analysis || {}),
+          status: "error",
+          error: payload.error || "Detection request failed"
+        };
+        this.recalculateMetricsFromAnalysis();
+        throw new Error(payload.error || "Detection request failed");
+      }
+
+      slot.analysis = {
+        ...payload,
+        status: "ready",
+        elapsedMs: Number(payload.elapsedMs || 0),
+        previewImage: payload.previewImage || slot.analysis?.previewImage || this.fallbackPreviewImage
+      };
+
+      this.recalculateMetricsFromAnalysis();
+      const summaryText = this.metricsToSummaryText(payload.metrics);
+      const sourceLabel = this.monitoringSources.find((source) => source.id === slot.id)?.cameraLabel || "CAM";
+      const timelineCount = Array.isArray(payload.timelineEvents) ? payload.timelineEvents.length : 0;
+      const snapshotCount = Array.isArray(payload.snapshots) ? payload.snapshots.length : 0;
+      const elapsedText = payload.elapsedMs ? ` · ${Math.round(payload.elapsedMs)} ms` : "";
+      this.appendLog(
+        `${sourceLabel}: ใช้โมเดล <strong>${payload.model?.fileName || "rm-img.pt"}</strong> ตรวจจับจาก URL ได้ <strong>${payload.total}</strong> เป้าหมาย${summaryText ? ` (${summaryText})` : ""}${timelineCount ? ` · timeline ${timelineCount} จุด` : ""}${snapshotCount ? ` · snapshots ${snapshotCount}` : ""}${elapsedText}`
+      );
+      this.appendFilteredDetectionHint(payload, sourceLabel);
     },
     async analyzeFileSources() {
       const fileSlots = this.sourceSlots.filter((slot) => slot.file);
@@ -1929,46 +2237,40 @@ export default {
         await this.analyzeFileSource(slot);
       }
     },
+    async analyzeUrlSources() {
+      const urlSlots = this.sourceSlots.filter((slot) => slot.url.trim());
+      this.metrics = this.emptyMetrics();
+      for (const slot of urlSlots) {
+        await this.analyzeUrlSource(slot);
+      }
+    },
     clearInputData() {
       this.inputMode = "url";
+      this.sourceMode = "stream";
       this.resetSourceSlots();
       this.selectedTargets = [...DEFAULT_TARGET_SELECTION];
       this.timelineFilterTargets = [...DEFAULT_TARGET_SELECTION];
+      this.metrics = this.emptyMetrics();
+      this.logs = [];
       this.checkInferenceServer();
     },
     resetPageData() {
       window.clearInterval(this.timer);
       this.running = false;
+      this.analysisLoopBusy = false;
       this.inputMode = "url";
+      this.sourceMode = "stream";
       this.resetSourceSlots();
       this.selectedTargets = [...DEFAULT_TARGET_SELECTION];
       this.timelineFilterTargets = [...DEFAULT_TARGET_SELECTION];
       this.selectedModel = "rm-img";
       this.sidebarCollapsed = false;
-      this.connectLabel = "Connect";
-      this.connectionText = "Stream disconnected";
       this.logIndex = 0;
       this.syncSidebarState(false);
       this.resolveBundledModels();
       this.checkInferenceServer();
-      this.metrics = {
-        MV: 12,
-        AMV: 15,
-        LMV: 23,
-        AFV: 7,
-        CV: 4,
-        MCV: 6
-      };
-      this.logs = [
-        { id: 1, time: "10:15:30", message: "เชื่อมต่อแหล่งข้อมูล: https://example.com/stream" },
-        { id: 2, time: "10:15:31", message: "โหลดโมเดล AI สำเร็จ" },
-        { id: 3, time: "10:15:32", message: "เริ่มการประมวลผลวิดีโอ" },
-        { id: 8, time: "10:15:34", message: "ตรวจพบ MV <strong>(Confidence: 0.93)</strong>" },
-        { id: 4, time: "10:15:35", message: "ตรวจพบ AMV <strong>(Confidence: 0.92)</strong>" },
-        { id: 5, time: "10:15:36", message: "ตรวจพบ LMV <strong>(Confidence: 0.88)</strong>" },
-        { id: 6, time: "10:15:37", message: "ตรวจพบ AMV <strong>(Confidence: 0.95)</strong>" },
-        { id: 7, time: "10:15:40", message: "ตรวจพบ AFV <strong>(Confidence: 0.90)</strong>" }
-      ];
+      this.metrics = this.emptyMetrics();
+      this.logs = [];
     },
     toggleSidebar() {
       this.syncSidebarState(!this.sidebarCollapsed);
@@ -2888,14 +3190,13 @@ export default {
       this.running = next;
 
       if (this.running) {
-        this.appendLog(`โหลดโมเดล <strong>${this.selectedModelMeta?.fileName || "rm-img.pt"}</strong> สำเร็จ`);
-
         if (this.inputMode === "file") {
           try {
             await this.checkInferenceServer();
             if (this.inferenceServer.status !== "ready") {
               throw new Error("Backend offline");
             }
+            this.appendLog(`backend พร้อม และโหลดโมเดล <strong>${this.selectedModelMeta?.fileName || "rm-img.pt"}</strong> สำเร็จ`);
             await this.analyzeFileSources();
             this.appendLog(`สรุปผลตรวจจับทั้งหมด <strong>${this.totalCount}</strong> เป้าหมาย`);
           } catch (error) {
@@ -2905,31 +3206,37 @@ export default {
           return;
         }
 
-        this.tickDetection();
-        this.timer = window.setInterval(this.tickDetection, 2200);
+        try {
+          await this.checkInferenceServer();
+          if (this.inferenceServer.status !== "ready") {
+            throw new Error("Backend offline");
+          }
+          this.appendLog(`backend พร้อม และโหลดโมเดล <strong>${this.selectedModelMeta?.fileName || "rm-img.pt"}</strong> สำเร็จ`);
+          this.analysisLoopBusy = true;
+          await this.analyzeUrlSources();
+          this.appendLog(`สรุปผลตรวจจับล่าสุด <strong>${this.totalCount}</strong> เป้าหมาย`);
+          this.analysisLoopBusy = false;
+          this.timer = window.setInterval(async () => {
+            if (!this.running || this.analysisLoopBusy) return;
+            this.analysisLoopBusy = true;
+            try {
+              await this.analyzeUrlSources();
+            } catch (error) {
+              this.appendLog(`อัปเดต stream ไม่สำเร็จ: <strong>${error.message || "Unknown error"}</strong>`);
+            } finally {
+              this.analysisLoopBusy = false;
+            }
+          }, 8000);
+        } catch (error) {
+          this.analysisLoopBusy = false;
+          this.running = false;
+          this.appendLog(`เริ่มรันโมเดลไม่สำเร็จ: <strong>${error.message || "Unknown error"}</strong>`);
+        }
       } else {
         window.clearInterval(this.timer);
+        this.analysisLoopBusy = false;
         this.appendLog(`หยุดการตรวจจับของโมเดล <strong>${this.selectedModelMeta?.fileName || "rm-img.pt"}</strong>`);
       }
-    },
-    tickDetection() {
-      const time = new Date().toLocaleTimeString("th-TH", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false
-      });
-      const message = this.generatedEvents[this.logIndex % this.generatedEvents.length];
-      const metricKeys = Object.keys(this.metrics);
-      const targetKey = metricKeys[this.logIndex % metricKeys.length];
-
-      this.logs.unshift({
-        id: Date.now() + this.logIndex,
-        time,
-        message
-      });
-      this.metrics[targetKey] += 1;
-      this.logIndex += 1;
     }
   }
 };
