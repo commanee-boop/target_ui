@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlightCalc Local</title>
+  <link rel="icon" type="image/png" href="./weaponeering-logo.png">
+  <link rel="apple-touch-icon" href="./weaponeering-logo.png">
+  <script>
+    if (sessionStorage.getItem("weaponeering-authenticated") !== "true") {
+      window.location.replace("Home.html");
+    }
+  </script>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="mark">FC</div>
+        <div>
+          <h1>FlightCalc Local</h1>
+          <p class="subtitle">Local mission planning interface with responsive controls and live summary.</p>
+        </div>
+      </div>
+
+      <div class="top-actions">
+        <section class="status-strip" aria-label="Status summary">
+          <div class="status">
+            <span>Mode</span>
+            <strong id="statusMode">Training</strong>
+          </div>
+          <div class="status">
+            <span>Profile</span>
+            <strong id="statusProfile">Standard</strong>
+          </div>
+          <div class="status">
+            <span>Wind</span>
+            <strong id="statusWind">12 kt</strong>
+          </div>
+          <div class="status">
+            <span>Readiness</span>
+            <strong id="statusReady">Nominal</strong>
+          </div>
+        </section>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" title="Dark mode" aria-label="Toggle dark mode">
+          <svg class="moon-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.8 6.8 0 0 0 21 12.8Z"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <section class="layout">
+      <aside class="panel controls">
+        <div class="section-title">
+          <h2>Inputs</h2>
+          <span class="pill">LOCAL</span>
+        </div>
+
+        <form class="field-grid" id="calcForm">
+          <label class="wide">
+            Scenario
+            <select id="scenario">
+              <option>Training</option>
+              <option>Survey</option>
+              <option>Transit</option>
+              <option>Evaluation</option>
+            </select>
+          </label>
+
+          <label>
+            Aircraft
+            <select id="aircraft">
+              <option>Standard</option>
+              <option>Light</option>
+              <option>Heavy</option>
+            </select>
+          </label>
+
+          <label>
+            Route distance
+            <input id="distance" type="number" min="1" value="42">
+          </label>
+
+          <label>
+            Altitude
+            <input id="altitude" type="number" min="0" value="8500">
+          </label>
+
+          <label>
+            Air speed
+            <input id="speed" type="number" min="1" value="215">
+          </label>
+
+          <label class="wide">
+            Wind speed
+            <div class="range-row">
+              <input id="wind" type="range" min="0" max="60" value="12">
+              <input id="windNumber" type="number" min="0" max="60" value="12">
+            </div>
+          </label>
+
+          <label>
+            Temperature
+            <input id="temperature" type="number" value="28">
+          </label>
+
+          <label>
+            Fuel reserve
+            <input id="reserve" type="number" min="0" value="18">
+          </label>
+        </form>
+
+        <div class="actions">
+          <button class="btn" id="calculate" type="button">Calculate</button>
+          <button class="btn secondary" id="aiEstimate" type="button">AI Estimate</button>
+          <button class="btn secondary" id="reset" type="button">Reset</button>
+        </div>
+
+        <div class="ai-panel" aria-live="polite">
+          <strong id="aiDistance">AI distance: waiting</strong>
+          <p id="aiInsight">กด AI Estimate เพื่อให้ระบบ local ช่วยประเมินระยะทางจากค่าที่กรอกไว้.</p>
+        </div>
+      </aside>
+
+      <section class="result-space">
+        <article class="panel hero-panel">
+          <div class="map-head">
+            <div>
+              <h2>Route Overview</h2>
+              <p class="subtitle">Live visual preview for the selected profile.</p>
+            </div>
+            <div class="map-tools" aria-label="Map tools">
+              <button class="icon-btn" type="button" title="Zoom in">+</button>
+              <button class="icon-btn" type="button" title="Zoom out">-</button>
+              <button class="icon-btn" type="button" title="Center">C</button>
+            </div>
+          </div>
+          <div class="plot" aria-label="Route plot">
+            <span class="axis north">N</span>
+            <span class="axis east">E</span>
+            <div class="marker a">START</div>
+            <div class="route"></div>
+            <div class="marker b">END</div>
+          </div>
+        </article>
+
+        <section class="cards" aria-label="Calculated metrics">
+          <article class="panel metric">
+            <span>Estimated time</span>
+            <strong id="timeMetric">12 min</strong>
+            <small>Based on speed, distance, and wind adjustment.</small>
+          </article>
+          <article class="panel metric">
+            <span>Fuel estimate</span>
+            <strong id="fuelMetric">34%</strong>
+            <small>Includes the selected reserve value.</small>
+          </article>
+          <article class="panel metric">
+            <span>Planning score</span>
+            <strong id="scoreMetric">92</strong>
+            <small>Higher score means inputs are balanced for this profile.</small>
+          </article>
+        </section>
+
+        <article class="panel table-panel">
+          <div class="map-head">
+            <div>
+              <h2>Checklist</h2>
+              <p class="subtitle">Operational UI states for quick review.</p>
+            </div>
+            <span class="pill" id="updatedAt">UPDATED</span>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Value</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Weather input</td>
+                <td id="weatherValue">Wind 12 kt, 28 C</td>
+                <td><span class="badge">Ready</span></td>
+              </tr>
+              <tr>
+                <td>Flight profile</td>
+                <td id="profileValue">Standard at 8,500 ft</td>
+                <td><span class="badge">Ready</span></td>
+              </tr>
+              <tr>
+                <td>Reserve margin</td>
+                <td id="reserveValue">18%</td>
+                <td><span class="badge warn" id="reserveBadge">Review</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </article>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const themeToggle = document.querySelector("#themeToggle");
+    const iconMoon = `
+      <svg class="moon-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.8 6.8 0 0 0 21 12.8Z"></path>
+      </svg>
+    `;
+    const iconSun = `
+      <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="4"></circle>
+        <path d="M12 2v2"></path>
+        <path d="M12 20v2"></path>
+        <path d="m4.93 4.93 1.41 1.41"></path>
+        <path d="m17.66 17.66 1.41 1.41"></path>
+        <path d="M2 12h2"></path>
+        <path d="M20 12h2"></path>
+        <path d="m6.34 17.66-1.41 1.41"></path>
+        <path d="m19.07 4.93-1.41 1.41"></path>
+      </svg>
+    `;
+
+    const fields = {
+      scenario: document.querySelector("#scenario"),
+      aircraft: document.querySelector("#aircraft"),
+      distance: document.querySelector("#distance"),
+      altitude: document.querySelector("#altitude"),
+      speed: document.querySelector("#speed"),
+      wind: document.querySelector("#wind"),
+      windNumber: document.querySelector("#windNumber"),
+      temperature: document.querySelector("#temperature"),
+      reserve: document.querySelector("#reserve")
+    };
+
+    const output = {
+      statusMode: document.querySelector("#statusMode"),
+      statusProfile: document.querySelector("#statusProfile"),
+      statusWind: document.querySelector("#statusWind"),
+      statusReady: document.querySelector("#statusReady"),
+      timeMetric: document.querySelector("#timeMetric"),
+      fuelMetric: document.querySelector("#fuelMetric"),
+      scoreMetric: document.querySelector("#scoreMetric"),
+      weatherValue: document.querySelector("#weatherValue"),
+      profileValue: document.querySelector("#profileValue"),
+      reserveValue: document.querySelector("#reserveValue"),
+      reserveBadge: document.querySelector("#reserveBadge"),
+      updatedAt: document.querySelector("#updatedAt"),
+      aiDistance: document.querySelector("#aiDistance"),
+      aiInsight: document.querySelector("#aiInsight")
+    };
+
+    function numberValue(input, fallback) {
+      const value = Number(input.value);
+      return Number.isFinite(value) ? value : fallback;
+    }
+
+    function setTheme(theme) {
+      const isDark = theme === "dark";
+      document.body.dataset.theme = isDark ? "dark" : "light";
+      themeToggle.innerHTML = isDark ? iconSun : iconMoon;
+      themeToggle.title = isDark ? "Light mode" : "Dark mode";
+      themeToggle.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
+      localStorage.setItem("flightcalc-theme", isDark ? "dark" : "light");
+    }
+
+    function syncWind(source) {
+      const value = source === fields.wind ? fields.wind.value : fields.windNumber.value;
+      fields.wind.value = value;
+      fields.windNumber.value = value;
+    }
+
+    function clamp(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function estimateDistanceLocally() {
+      const scenarioBase = {
+        Training: 42,
+        Survey: 72,
+        Transit: 118,
+        Evaluation: 56
+      };
+      const aircraftFactor = {
+        Light: 0.86,
+        Standard: 1,
+        Heavy: 1.16
+      };
+
+      const scenario = fields.scenario.value;
+      const aircraft = fields.aircraft.value;
+      const altitude = Math.max(0, numberValue(fields.altitude, 8500));
+      const speed = Math.max(1, numberValue(fields.speed, 215));
+      const wind = Math.max(0, numberValue(fields.wind, 12));
+      const temperature = numberValue(fields.temperature, 28);
+      const reserve = Math.max(0, numberValue(fields.reserve, 18));
+
+      const base = scenarioBase[scenario] || 42;
+      const profile = aircraftFactor[aircraft] || 1;
+      const altitudeBoost = clamp(altitude / 52000, 0, 0.26);
+      const speedBoost = clamp((speed - 180) / 900, -0.08, 0.18);
+      const weatherPenalty = clamp(wind / 240 + Math.abs(temperature - 24) / 520, 0, 0.34);
+      const reservePenalty = clamp(reserve / 650, 0, 0.08);
+
+      const confidence = Math.round(clamp(93 - wind * 0.42 - Math.abs(temperature - 24) * 0.28, 62, 94));
+      const estimate = Math.max(1, Math.round(base * profile * (1 + altitudeBoost + speedBoost - weatherPenalty - reservePenalty)));
+
+      fields.distance.value = estimate;
+      output.aiDistance.textContent = `AI distance: ${estimate} nm`;
+      output.aiInsight.textContent = `Local model ใช้ ${scenario}, ${aircraft}, wind ${wind} kt และ reserve ${reserve}% เพื่อประเมินค่า ความมั่นใจประมาณ ${confidence}%.`;
+      calculate();
+    }
+
+    function calculate() {
+      const distance = Math.max(1, numberValue(fields.distance, 42));
+      const speed = Math.max(1, numberValue(fields.speed, 215));
+      const wind = Math.max(0, numberValue(fields.wind, 12));
+      const altitude = Math.max(0, numberValue(fields.altitude, 8500));
+      const reserve = Math.max(0, numberValue(fields.reserve, 18));
+      const temperature = numberValue(fields.temperature, 28);
+
+      const windPenalty = 1 + wind / 180;
+      const time = Math.max(1, Math.round((distance / speed) * 60 * windPenalty));
+      const fuel = Math.min(99, Math.round(distance * 0.58 + reserve + wind * 0.22));
+      const score = Math.max(45, Math.min(99, Math.round(100 - wind * 0.45 - Math.abs(temperature - 24) * 0.35 - reserve * 0.08)));
+      const readiness = score > 86 ? "Nominal" : score > 72 ? "Review" : "Caution";
+
+      output.statusMode.textContent = fields.scenario.value;
+      output.statusProfile.textContent = fields.aircraft.value;
+      output.statusWind.textContent = `${wind} kt`;
+      output.statusReady.textContent = readiness;
+      output.timeMetric.textContent = `${time} min`;
+      output.fuelMetric.textContent = `${fuel}%`;
+      output.scoreMetric.textContent = score;
+      output.weatherValue.textContent = `Wind ${wind} kt, ${temperature} C`;
+      output.profileValue.textContent = `${fields.aircraft.value} at ${altitude.toLocaleString()} ft`;
+      output.reserveValue.textContent = `${reserve}%`;
+      output.reserveBadge.textContent = reserve >= 20 ? "Ready" : "Review";
+      output.reserveBadge.classList.toggle("warn", reserve < 20);
+      output.updatedAt.textContent = new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
+    }
+
+    Object.values(fields).forEach((field) => {
+      field.addEventListener("input", () => {
+        if (field === fields.wind || field === fields.windNumber) {
+          syncWind(field);
+        }
+        calculate();
+      });
+    });
+
+    document.querySelector("#calculate").addEventListener("click", calculate);
+    document.querySelector("#aiEstimate").addEventListener("click", estimateDistanceLocally);
+    document.querySelector("#reset").addEventListener("click", () => {
+      fields.scenario.value = "Training";
+      fields.aircraft.value = "Standard";
+      fields.distance.value = 42;
+      fields.altitude.value = 8500;
+      fields.speed.value = 215;
+      fields.wind.value = 12;
+      fields.windNumber.value = 12;
+      fields.temperature.value = 28;
+      fields.reserve.value = 18;
+      output.aiDistance.textContent = "AI distance: waiting";
+      output.aiInsight.textContent = "กด AI Estimate เพื่อให้ระบบ local ช่วยประเมินระยะทางจากค่าที่กรอกไว้.";
+      calculate();
+    });
+
+    themeToggle.addEventListener("click", () => {
+      const nextTheme = document.body.dataset.theme === "dark" ? "light" : "dark";
+      setTheme(nextTheme);
+    });
+
+    setTheme(localStorage.getItem("flightcalc-theme") || "light");
+    calculate();
+  </script>
+</body>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f7f8;
+      --panel: #ffffff;
+      --ink: #15212a;
+      --muted: #65737f;
+      --line: #dce5e8;
+      --accent: #0d7f8c;
+      --accent-dark: #0b6470;
+      --accent-2: #e25d42;
+      --good: #1f8a5b;
+      --warn: #b06b13;
+      --track: #e9f1f3;
+      --soft: #e9f4f5;
+      --field-bg: #fbfcfc;
+      --field-border: #cfdadd;
+      --button-bg: #f8fafb;
+      --plot-bg: #f7fbfb;
+      --grid-line: rgba(21, 33, 42, 0.07);
+      --status-bg: rgba(255, 255, 255, 0.76);
+      --badge-bg: #ecf8f2;
+      --badge-warn-bg: #fff5e8;
+      --shadow: 0 18px 50px rgba(21, 33, 42, 0.08);
+    }
+
+    body[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #101619;
+      --panel: #172126;
+      --ink: #eef5f6;
+      --muted: #9badb5;
+      --line: #2a3940;
+      --accent: #31b4c2;
+      --accent-dark: #81dce5;
+      --accent-2: #ff8064;
+      --good: #64d49c;
+      --warn: #f2b45c;
+      --track: #243238;
+      --soft: #20343a;
+      --field-bg: #111b20;
+      --field-border: #34464d;
+      --button-bg: #121d22;
+      --plot-bg: #111a1e;
+      --grid-line: rgba(238, 245, 246, 0.08);
+      --status-bg: rgba(23, 33, 38, 0.78);
+      --badge-bg: rgba(100, 212, 156, 0.14);
+      --badge-warn-bg: rgba(242, 180, 92, 0.15);
+      --shadow: 0 18px 50px rgba(0, 0, 0, 0.26);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        linear-gradient(180deg, rgba(13, 127, 140, 0.08), rgba(244, 247, 248, 0) 360px),
+        var(--bg);
+      transition: background-color 180ms ease, color 180ms ease;
+    }
+
+    body[data-theme="dark"] {
+      background:
+        linear-gradient(180deg, rgba(49, 180, 194, 0.14), rgba(16, 22, 25, 0) 360px),
+        var(--bg);
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    .app {
+      width: min(1440px, 100%);
+      margin: 0 auto;
+      padding: 22px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 12px 0 22px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .mark {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      color: #fff;
+      background: linear-gradient(135deg, #0d7f8c, #1f8a5b);
+      font-weight: 800;
+      letter-spacing: 0;
+      flex: 0 0 auto;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(24px, 3vw, 38px);
+      line-height: 1.06;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .status-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      width: min(620px, 100%);
+      min-width: 0;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-left: auto;
+    }
+
+    .status {
+      border: 1px solid rgba(13, 127, 140, 0.18);
+      border-radius: 8px;
+      background: var(--status-bg);
+      padding: 10px 12px;
+    }
+
+    .status span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .status strong {
+      display: block;
+      margin-top: 3px;
+      font-size: 16px;
+      white-space: nowrap;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 380px minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .controls {
+      position: sticky;
+      top: 18px;
+      padding: 18px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .section-title h2 {
+      font-size: 18px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--soft);
+      color: var(--accent-dark);
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    label {
+      display: grid;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .wide {
+      grid-column: 1 / -1;
+    }
+
+    input,
+    select {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid var(--field-border);
+      border-radius: 8px;
+      background: var(--field-bg);
+      color: var(--ink);
+      padding: 9px 10px;
+      outline: none;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(13, 127, 140, 0.14);
+    }
+
+    .range-row {
+      display: grid;
+      grid-template-columns: 1fr 76px;
+      gap: 10px;
+      align-items: center;
+    }
+
+    input[type="range"] {
+      min-height: auto;
+      padding: 0;
+      accent-color: var(--accent);
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .ai-panel {
+      margin-top: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--button-bg);
+      padding: 12px;
+    }
+
+    .ai-panel strong {
+      display: block;
+      color: var(--ink);
+      font-size: 13px;
+      margin-bottom: 5px;
+    }
+
+    .ai-panel p {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 42px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      padding: 10px 13px;
+      color: #fff;
+      background: var(--accent);
+      cursor: pointer;
+      font-weight: 800;
+    }
+
+    .btn.secondary {
+      color: var(--ink);
+      background: var(--button-bg);
+      border-color: var(--line);
+    }
+
+    .btn:hover {
+      filter: brightness(0.98);
+    }
+
+    .result-space {
+      display: grid;
+      gap: 18px;
+    }
+
+    .hero-panel {
+      min-height: 380px;
+      overflow: hidden;
+    }
+
+    .map-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .map-head h2 {
+      font-size: 18px;
+    }
+
+    .map-tools {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .icon-btn {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--ink);
+      cursor: pointer;
+      font-weight: 900;
+    }
+
+    .theme-toggle {
+      position: relative;
+      flex: 0 0 auto;
+    }
+
+    .theme-toggle svg {
+      width: 18px;
+      height: 18px;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .plot {
+      position: relative;
+      min-height: 320px;
+      background:
+        linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+        linear-gradient(180deg, var(--grid-line) 1px, transparent 1px),
+        radial-gradient(circle at 26% 34%, rgba(13, 127, 140, 0.18), transparent 24%),
+        radial-gradient(circle at 78% 72%, rgba(226, 93, 66, 0.13), transparent 24%),
+        var(--plot-bg);
+      background-size: 36px 36px, 36px 36px, auto, auto, auto;
+    }
+
+    .axis {
+      position: absolute;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .axis.north {
+      top: 18px;
+      left: 50%;
+      translate: -50% 0;
+    }
+
+    .axis.east {
+      top: 50%;
+      right: 18px;
+      translate: 0 -50%;
+    }
+
+    .route {
+      position: absolute;
+      left: 12%;
+      top: 56%;
+      width: 72%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), var(--accent-2));
+      rotate: -16deg;
+      transform-origin: left center;
+    }
+
+    .route::before,
+    .route::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      translate: 0 -50%;
+      border: 3px solid var(--panel);
+      box-shadow: 0 8px 18px rgba(21, 33, 42, 0.18);
+    }
+
+    .route::before {
+      left: 0;
+      background: var(--accent);
+    }
+
+    .route::after {
+      right: 0;
+      background: var(--accent-2);
+    }
+
+    .marker {
+      position: absolute;
+      display: grid;
+      place-items: center;
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      border: 1px solid rgba(13, 127, 140, 0.2);
+      background: var(--status-bg);
+      box-shadow: 0 12px 34px rgba(21, 33, 42, 0.12);
+      font-size: 12px;
+      font-weight: 900;
+      color: var(--accent-dark);
+    }
+
+    .marker.a {
+      left: 20%;
+      top: 28%;
+    }
+
+    .marker.b {
+      right: 18%;
+      bottom: 18%;
+      color: var(--accent-2);
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .metric {
+      padding: 16px;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 8px;
+      font-size: 28px;
+      letter-spacing: 0;
+    }
+
+    .metric small {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .table-panel {
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      padding: 13px 16px;
+      border-top: 1px solid var(--line);
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0;
+      background: var(--button-bg);
+    }
+
+    .badge {
+      display: inline-flex;
+      min-width: 74px;
+      justify-content: center;
+      border-radius: 999px;
+      padding: 5px 9px;
+      font-size: 12px;
+      font-weight: 800;
+      background: var(--badge-bg);
+      color: var(--good);
+    }
+
+    .badge.warn {
+      background: var(--badge-warn-bg);
+      color: var(--warn);
+    }
+
+    @media (max-width: 980px) {
+      .topbar {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .top-actions {
+        width: 100%;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+      }
+
+      .status-strip {
+        width: 100%;
+      }
+
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .controls {
+        position: static;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .app {
+        padding: 14px;
+      }
+
+      .status-strip,
+      .cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .field-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .actions {
+        flex-direction: column;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .status-strip,
+      .cards {
+        grid-template-columns: 1fr;
+      }
+
+      .map-head {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      th,
+      td {
+        padding: 11px 12px;
+      }
+    }
+  </style>
+</html>

@@ -2,6 +2,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "dev:static": "node dev-server.js",
+    "dev:backend": "cd server && npm install && npm run dev",
     "build": "vite build && node build-sites.js"
   },
   "devDependencies": {

@@ -55,7 +55,7 @@
                 <span>Administrator</span>
               </div>
             </div>
-            <button class="logout-button" title="Logout" aria-label="Logout">
+            <button class="logout-button" title="Logout" aria-label="Logout" type="button" @click="handleLogout">
               <span class="icon bi bi-box-arrow-right"></span>
               <span>Logout</span>
             </button>
@@ -1036,6 +1036,7 @@ export default {
     document.body.classList.toggle("theme-light", this.theme === "light");
     document.body.classList.toggle("report-view", this.currentView === "report");
     this.$nextTick(this.syncViewLayout);
+    this.fetchReports();
   },
   beforeUnmount() {
     window.clearInterval(this.timer);
@@ -1089,6 +1090,9 @@ export default {
       document.body.style.removeProperty("overflow");
       document.body.style.removeProperty("padding-right");
       document.querySelectorAll(".modal-backdrop").forEach((element) => element.remove());
+    },
+    handleLogout() {
+      window.location.replace(new URL("./Weaponeering/login.html", window.location.href).href);
     },
     setView(view) {
       this.currentView = view;
@@ -1366,7 +1370,7 @@ export default {
     cancelSaveConfirm() {
       this.saveDialog.confirm = false;
     },
-    confirmSaveData() {
+    async confirmSaveData() {
       const source = this.saveDialog.source;
       const fileName = this.saveDialog.fileName.trim();
       if (!this.canSaveData || !source || !fileName) return;
@@ -1402,6 +1406,18 @@ export default {
       this.reportRecords.unshift(reportRecord);
       this.selectedReportId = reportRecord.id;
       this.updateReportStats(reportRecord);
+
+      try {
+        const serverId = await this.postReportToServer(reportRecord);
+        if (serverId) {
+          reportRecord.id = serverId;
+          this.selectedReportId = serverId;
+        }
+        this.reportNotice = 'บันทึกข้อมูลเรียบร้อยแล้ว';
+      } catch (error) {
+        console.error(error);
+        this.reportNotice = 'บันทึกรายงานไม่สำเร็จบนเซิร์ฟเวอร์ แต่ยังเก็บไว้ในหน้าเว็บได้';
+      }
 
       this.logs.unshift({
         id: Date.now(),
@@ -1507,6 +1523,50 @@ export default {
     viewReport(record) {
       this.selectReport(record);
       this.reportNotice = `เปิดดูรายละเอียด ${record.name}.${record.ext.toLowerCase()}`;
+    },
+    async fetchReports() {
+      try {
+        const response = await fetch('/api/reports');
+        if (!response.ok) {
+          throw new Error(`Request failed: ${response.status}`);
+        }
+        const data = await response.json();
+        if (Array.isArray(data)) {
+          this.reportRecords = data;
+          this.applyReportFilters();
+        }
+      } catch (error) {
+        console.error('Unable to load reports:', error);
+        this.reportNotice = 'ไม่สามารถโหลดรายงานจากเซิร์ฟเวอร์ได้';
+      }
+    },
+    async postReportToServer(reportRecord) {
+      const payload = {
+        fileName: reportRecord.name,
+        source: reportRecord.source,
+        ext: reportRecord.ext,
+        kind: reportRecord.kind,
+        duration: reportRecord.duration,
+        size: reportRecord.size,
+        resolution: reportRecord.resolution,
+        fps: reportRecord.fps,
+        recorder: reportRecord.recorder,
+        tags: reportRecord.tags,
+        metrics: reportRecord.metrics,
+        model: reportRecord.model
+      };
+
+      const response = await fetch('/api/reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) {
+        const errorResponse = await response.json().catch(() => ({}));
+        throw new Error(errorResponse.error || `Server responded ${response.status}`);
+      }
+      const data = await response.json();
+      return data.id;
     },
     async exportReport(record, format) {
       await this.exportReports([record], format, record.name);

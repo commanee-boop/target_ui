@@ -58,7 +58,7 @@
           <span>Administrator</span>
         </div>
       </div>
-      <button class="logout-button" title="Logout" aria-label="Logout">
+      <button class="logout-button" title="Logout" aria-label="Logout" type="button" @click="$emit('logout')">
         <span class="icon bi bi-box-arrow-right"></span>
         <span>Logout</span>
       </button>
@@ -91,6 +91,6 @@ export default {
       required: true
     }
   },
-  emits: ["set-view", "toggle-theme"]
+  emits: ["set-view", "toggle-theme", "logout"]
 };
 </script>
