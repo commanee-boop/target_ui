@@ -277,28 +277,20 @@ button {
 }
 
 .top-brand-copy strong {
-  color: #ffe45f;
+  color: #ffe978;
   font-size: clamp(1.08rem, 1.22vw, 1.42rem);
   font-weight: 950;
   line-height: 1.08;
-  text-shadow:
-    0 1px 0 #000,
-    1px 0 0 #000,
-    0 -1px 0 #000,
-    -1px 0 0 #000;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
 }
 
 .top-brand-copy span {
   margin-top: 0.28rem;
-  color: #ffffff;
+  color: #e4f6ff;
   font-size: clamp(0.92rem, 1vw, 1.16rem);
   font-weight: 900;
   line-height: 1.18;
-  text-shadow:
-    0 1px 0 #000,
-    1px 0 0 #000,
-    0 -1px 0 #000,
-    -1px 0 0 #000;
+  text-shadow: 0 1px 7px rgba(0, 0, 0, 0.5);
 }
 
 .topbar .sidebar-brand {
@@ -631,14 +623,15 @@ body.theme-light .live-frame-tools button {
 }
 
 body.theme-light .top-brand-copy strong {
-  text-shadow:
-    0 1px 0 #000,
-    1px 0 0 #000,
-    0 -1px 0 #000,
-    -1px 0 0 #000;
+  color: #0c4f8d;
+  text-shadow: none;
 }
 
-body.theme-light .top-brand-copy span,
+body.theme-light .top-brand-copy span {
+  color: #276588;
+  text-shadow: none;
+}
+
 body.theme-light .clock strong,
 body.theme-light h1,
 body.theme-light h2 {
@@ -2625,6 +2618,14 @@ body.theme-light .queue-pill.is-soft {
   border-radius: 0.25rem;
 }
 
+.feed-media-stage {
+  position: relative;
+  grid-row: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .live-frame img,
 .feed-tile video {
   min-width: 0;
@@ -2637,6 +2638,12 @@ body.theme-light .queue-pill.is-soft {
   object-position: center;
   display: block;
   filter: saturate(0.84) contrast(1.04) brightness(0.82);
+}
+
+.feed-media-stage > img,
+.feed-media-stage > video {
+  width: 100%;
+  height: 100%;
 }
 
 .feed-tile .feed-name {
@@ -2667,6 +2674,40 @@ body.theme-light .queue-pill.is-soft {
   border-radius: 0.28rem;
   font-size: 0.68rem;
   font-weight: 800;
+}
+
+.feed-error {
+  position: absolute;
+  z-index: 10;
+  left: 50%;
+  top: 50%;
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  width: min(82%, 28rem);
+  padding: 1rem 1.15rem;
+  color: #ffe4e9;
+  background: rgba(57, 10, 20, 0.88);
+  border: 1px solid rgba(255, 94, 123, 0.48);
+  border-radius: 0.6rem;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.32);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.25;
+  text-align: center;
+  transform: translate(-50%, -50%);
+}
+
+.feed-error i {
+  color: #ff8aa3;
+  font-size: 1.15rem;
+}
+
+.feed-error small {
+  color: #ffc0ce;
+  font-size: 0.64rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 .feed-tile:has(.feed-control-bar) .feed-name,
@@ -2741,9 +2782,9 @@ body.theme-light .queue-pill.is-soft {
   display: flex;
   align-items: flex-start;
   padding: 0.2rem 0.3rem;
-  color: #9dff9d;
-  border: 2px solid rgba(93, 255, 101, 0.72);
-  background: rgba(30, 180, 70, 0.12);
+  color: #b7dcff;
+  border: 2px solid rgba(31, 103, 169, 0.82);
+  background: rgba(20, 80, 142, 0.18);
   font-size: 0.72rem;
   font-weight: 900;
   text-shadow: 0 1px 3px #000;
@@ -2896,56 +2937,64 @@ body.theme-light .queue-pill.is-soft {
 .event.mv,
 .snapshot-detection-box.mv,
 .playback-detection-box.mv {
-  color: #9affae;
-  background: rgba(55, 230, 92, 0.14);
-  border-color: #4fff72;
-  box-shadow: 0 0 18px rgba(79, 255, 114, 0.24);
+  color: #b7dcff;
+  background: rgba(20, 80, 142, 0.18);
+  border-color: #1f67a9;
+  box-shadow: 0 0 18px rgba(31, 103, 169, 0.32);
 }
 
 .event.amv,
 .snapshot-detection-box.amv,
 .playback-detection-box.amv {
-  color: #75ec7a;
-  background: rgba(88, 233, 112, 0.14);
-  border-color: #4dff8a;
-  box-shadow: 0 0 18px rgba(77, 255, 138, 0.24);
+  color: #b7dcff;
+  background: rgba(20, 80, 142, 0.18);
+  border-color: #1f67a9;
+  box-shadow: 0 0 18px rgba(31, 103, 169, 0.32);
 }
 
 .event.lmv,
 .snapshot-detection-box.lmv,
 .playback-detection-box.lmv {
-  color: #8cb8ff;
-  background: rgba(88, 142, 255, 0.16);
-  border-color: #6f9dff;
-  box-shadow: 0 0 18px rgba(111, 157, 255, 0.24);
+  color: #b7dcff;
+  background: rgba(20, 80, 142, 0.18);
+  border-color: #1f67a9;
+  box-shadow: 0 0 18px rgba(31, 103, 169, 0.32);
 }
 
 .event.afv,
 .snapshot-detection-box.afv,
 .playback-detection-box.afv {
-  color: #ffd778;
-  background: rgba(255, 205, 88, 0.15);
-  border-color: #ebbd5f;
-  box-shadow: 0 0 18px rgba(235, 189, 95, 0.24);
+  color: #b7dcff;
+  background: rgba(20, 80, 142, 0.18);
+  border-color: #1f67a9;
+  box-shadow: 0 0 18px rgba(31, 103, 169, 0.32);
 }
 
 .event.cv,
 .snapshot-detection-box.cv,
 .playback-detection-box.cv {
-  color: #b79cff;
-  background: rgba(154, 109, 245, 0.16);
-  border-color: #9a6df5;
-  box-shadow: 0 0 18px rgba(154, 109, 245, 0.24);
+  color: #b7dcff;
+  background: rgba(20, 80, 142, 0.18);
+  border-color: #1f67a9;
+  box-shadow: 0 0 18px rgba(31, 103, 169, 0.32);
 }
 
 .event.mcv,
 .snapshot-detection-box.mcv,
 .playback-detection-box.mcv {
-  color: #ffd0a7;
-  background: rgba(229, 129, 46, 0.16);
-  border-color: #e5812e;
-  box-shadow: 0 0 18px rgba(229, 129, 46, 0.24);
+  color: #b7dcff;
+  background: rgba(20, 80, 142, 0.18);
+  border-color: #1f67a9;
+  box-shadow: 0 0 18px rgba(31, 103, 169, 0.32);
 }
+
+/* Timeline markers inherit the same colors used by Target Classes. */
+.timeline .event.mv { color: #6fe58e; border-color: currentColor; box-shadow: 0 0 10px currentColor; }
+.timeline .event.amv { color: #2ed36f; border-color: currentColor; box-shadow: 0 0 10px currentColor; }
+.timeline .event.lmv { color: #2f84ff; border-color: currentColor; box-shadow: 0 0 10px currentColor; }
+.timeline .event.afv { color: #f3ad2f; border-color: currentColor; box-shadow: 0 0 10px currentColor; }
+.timeline .event.cv { color: #8c4be8; border-color: currentColor; box-shadow: 0 0 10px currentColor; }
+.timeline .event.mcv { color: #e5812e; border-color: currentColor; box-shadow: 0 0 10px currentColor; }
 
 .time-scale {
   display: grid;
@@ -3508,8 +3557,8 @@ button.snapshot {
 }
 
 .snapshot:hover {
-  border-color: rgba(79, 255, 114, 0.58);
-  box-shadow: 0 0 0 1px rgba(79, 255, 114, 0.16);
+  border-color: rgba(31, 103, 169, 0.72);
+  box-shadow: 0 0 0 1px rgba(31, 103, 169, 0.24);
 }
 
 .snapshot::after {
@@ -3539,6 +3588,23 @@ button.snapshot {
   object-fit: contain;
   object-position: center;
   filter: saturate(0.9) brightness(0.84);
+}
+
+/* Model bounding boxes use the same visual language in the live feed and
+   both snapshot views. */
+.snapshot .snapshot-detection-bounds {
+  z-index: 3;
+  min-width: 2.15rem;
+  padding: 0.1rem 0.14rem;
+  border-width: 1px;
+}
+
+.snapshot .snapshot-detection-bounds strong {
+  font-size: 0.5rem;
+}
+
+.snapshot .snapshot-detection-bounds small {
+  font-size: 0.43rem;
 }
 
 .snapshot-badge {
@@ -3656,6 +3722,21 @@ button.snapshot {
   filter: saturate(0.9) contrast(1.04) brightness(0.86);
 }
 
+.snapshot-modal-image .snapshot-modal-detection-bounds {
+  z-index: 2;
+  min-width: 4.4rem;
+  padding: 0.32rem 0.4rem;
+  border-width: 2px;
+}
+
+.snapshot-modal-image .snapshot-modal-detection-bounds strong {
+  font-size: 0.82rem;
+}
+
+.snapshot-modal-image .snapshot-modal-detection-bounds small {
+  font-size: 0.66rem;
+}
+
 .snapshot-detection-box {
   position: absolute;
   left: 0.9rem;
@@ -3710,9 +3791,9 @@ button.snapshot {
 .popup-box-4 {
   left: 70%;
   top: 28%;
-  color: #9affae;
-  background: rgba(55, 230, 92, 0.12);
-  border-color: #4fff72;
+  color: #b7dcff;
+  background: rgba(20, 80, 142, 0.18);
+  border-color: #1f67a9;
 }
 
 .report-page {
@@ -3967,6 +4048,11 @@ button.snapshot {
 
 .report-row.is-selected {
   box-shadow: inset 3px 0 0 #2f77f1;
+}
+
+.report-row:focus-visible {
+  outline: 2px solid #6fb0ff;
+  outline-offset: -2px;
 }
 
 .report-thumb {
@@ -6832,7 +6918,12 @@ body:not(.report-view) .live-frame.has-sources {
   height: 1rem;
 }
 
-.feed-control-bar .icon::before,
+.feed-control-bar .icon.bi::before {
+  display: block;
+  font-size: 0.92rem;
+  line-height: 1rem;
+}
+
 .feed-control-bar .control-icon::before,
 .feed-control-bar .control-icon::after {
   position: absolute;
@@ -6925,6 +7016,16 @@ body:not(.report-view) .live-frame.has-sources {
 .feed-control-bar .pause-bars::before,
 .feed-control-bar .pause-bars::after {
   height: 0.78rem;
+}
+
+/* Keep every control reachable when the live tile is narrow. */
+.live-frame.has-sources .feed-control-bar {
+  flex-wrap: wrap;
+  overflow: visible;
+}
+
+.live-frame.has-sources .feed-control-bar .feed-progress {
+  min-width: 4rem;
 }
 
 .feed-progress {
@@ -7079,6 +7180,14 @@ body:not(.report-view) .live-frame.has-sources {
 
 .live-frame.has-sources .live-overlay-menu {
   top: calc(2.15rem + 0.7rem);
+}
+
+/* Keep live tools visible on a locally played video, without covering its
+   camera header or the playback controls at the bottom of the tile. */
+.live-frame.has-sources .feed-tile .live-video-overlay-menu {
+  top: 2.75rem;
+  right: 0.7rem;
+  z-index: 13;
 }
 
 @media (max-width: 760px) {
@@ -8694,6 +8803,69 @@ body:not(.report-view) .logout-button {
   min-height: 2.55rem;
 }
 
+/* Keep the report header at the same scale as the detection workspace. */
+body.report-view .topbar {
+  gap: 0.85rem;
+  min-height: 5.1rem;
+  padding: 0.65rem 1rem;
+}
+
+body.report-view .top-brand {
+  grid-template-columns: 4rem minmax(15rem, auto);
+  gap: 0.75rem;
+  min-width: 24rem;
+}
+
+body.report-view .top-brand img {
+  width: 3.85rem;
+  height: 3.85rem;
+}
+
+body.report-view .top-brand-copy strong {
+  font-size: clamp(1rem, 1.1vw, 1.28rem);
+}
+
+body.report-view .top-brand-copy span {
+  font-size: clamp(0.82rem, 0.95vw, 1rem);
+}
+
+body.report-view .top-menu {
+  margin-left: 0;
+}
+
+body.report-view .top-menu-item {
+  grid-template-columns: 1.25rem minmax(0, auto);
+  min-height: 2.35rem;
+  padding: 0 0.72rem;
+}
+
+body.report-view .top-menu-item .bi {
+  justify-self: center;
+  font-size: 1.02rem;
+}
+
+body.report-view .operator-cluster {
+  gap: 0.5rem;
+}
+
+body.report-view .theme-toggle {
+  width: 2.55rem;
+  height: 2.55rem;
+}
+
+body.report-view .clock,
+body.report-view .operator,
+body.report-view .logout-button {
+  min-height: 2.55rem;
+}
+
+body.report-view .clock,
+body.report-view .operator,
+body.report-view .logout-button,
+body.report-view .top-menu-item {
+  font-size: inherit;
+}
+
 body:not(.report-view) .sidebar {
   top: 5.1rem;
   height: calc(100vh - 5.1rem);
@@ -9284,6 +9456,16 @@ body.theme-light .stop-detect-button:hover:not(:disabled) {
   }
 }
 
+/* Object-count badges: icon, class code, and count share one horizontal row. */
+.report-metric-strip > span,
+.report-summary-mini > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28rem;
+  white-space: nowrap;
+}
+
 /* Detection summary without total metric tile */
 .summary-panel .summary-lane .metric-grid {
   grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -9292,6 +9474,81 @@ body.theme-light .stop-detect-button:hover:not(:disabled) {
 body:not(.report-view) .intel-stack > .summary-panel .summary-lane .metric-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
+
+/* Mission Overview is a compact status glance; reserve the right rail for
+   the operational Log, Timeline, and Snapshot views. */
+body:not(.report-view) .intel-stack > .summary-panel {
+  grid-template-rows: auto auto;
+  align-content: start;
+  max-height: 12.1rem;
+  padding-bottom: 0.5rem;
+}
+
+body:not(.report-view) .intel-stack > .summary-panel .compact-strip,
+body:not(.report-view) .intel-stack > .summary-panel .summary-lanes,
+body:not(.report-view) .intel-stack > .summary-panel .legacy-metric-grid {
+  display: none;
+}
+
+body:not(.report-view) .intel-stack > .summary-panel .overview-grid {
+  grid-template-columns: minmax(4.6rem, 0.9fr) repeat(2, minmax(0, 1fr));
+  gap: 0.28rem;
+  padding: 0 0.6rem 0.25rem;
+}
+
+body:not(.report-view) .intel-stack > .summary-panel .overview-card.total-card {
+  grid-column: auto;
+  grid-row: span 3;
+  align-content: center;
+  justify-items: center;
+  text-align: center;
+  gap: 0.12rem;
+  padding: 0.38rem 0.6rem;
+}
+
+body:not(.report-view) .intel-stack > .summary-panel .overview-card.total-card strong {
+  font-size: 1.35rem;
+}
+
+body:not(.report-view) .intel-stack > .summary-panel .overview-total-label {
+  color: #7dbbff;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+body:not(.report-view) .intel-stack > .summary-panel .overview-card.total-card small {
+  display: none;
+}
+
+body:not(.report-view) .intel-stack > .summary-panel .overview-type-card {
+  display: grid;
+  grid-template-columns: 1rem minmax(0, 1fr);
+  align-items: center;
+  min-height: 2.25rem;
+  gap: 0.04rem;
+  padding: 0.28rem 0.38rem;
+}
+
+body:not(.report-view) .intel-stack > .summary-panel .overview-type-icon {
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+body:not(.report-view) .intel-stack > .summary-panel .overview-type-card strong {
+  color: #f4fbff;
+  font-size: 1rem;
+  text-align: right;
+}
+
+body:not(.report-view) .intel-stack > .summary-panel .overview-type-card.mv .overview-type-icon { color: #6fe58e; }
+body:not(.report-view) .intel-stack > .summary-panel .overview-type-card.amv .overview-type-icon { color: #2ed36f; }
+body:not(.report-view) .intel-stack > .summary-panel .overview-type-card.lmv .overview-type-icon { color: #2f84ff; }
+body:not(.report-view) .intel-stack > .summary-panel .overview-type-card.afv .overview-type-icon { color: #f3ad2f; }
+body:not(.report-view) .intel-stack > .summary-panel .overview-type-card.cv .overview-type-icon { color: #8c4be8; }
+body:not(.report-view) .intel-stack > .summary-panel .overview-type-card.mcv .overview-type-icon { color: #e5812e; }
 
 /* Sidebar control cleanup */
 body:not(.report-view) .app-shell {
@@ -9867,5 +10124,555 @@ body.theme-light .single-upload-action {
   .stream-remove-button,
   .single-upload-action {
     width: fit-content;
+  }
+}
+
+/* Responsive final overrides
+   These rules intentionally live last: the stylesheet contains legacy layout
+   variants, and their earlier breakpoint rules otherwise compete on small screens. */
+@media (max-width: 1100px) {
+  body:not(.report-view) .app-shell,
+  body:not(.report-view) .app-shell.is-sidebar-collapsed {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "topbar"
+      "sidebar"
+      "workspace";
+  }
+
+  body:not(.report-view) .sidebar,
+  body:not(.report-view) .sidebar.is-collapsed,
+  body:not(.report-view) .app-shell.is-sidebar-collapsed .sidebar {
+    width: auto;
+    height: auto;
+    min-height: 0;
+    padding: 0.7rem;
+    overflow: visible;
+  }
+
+  body:not(.report-view) .app-shell.is-sidebar-collapsed .sidebar-tools,
+  body:not(.report-view) .sidebar.is-collapsed .sidebar-tools {
+    grid-template-columns: minmax(0, 1fr) auto;
+    justify-items: stretch;
+    padding: 0.7rem 0.8rem;
+  }
+
+  body:not(.report-view) .app-shell.is-sidebar-collapsed .tools-title,
+  body:not(.report-view) .sidebar.is-collapsed .tools-title {
+    grid-template-columns: 2.9rem minmax(0, 1fr);
+  }
+
+  body:not(.report-view) .app-shell.is-sidebar-collapsed .tools-title div,
+  body:not(.report-view) .sidebar.is-collapsed .tools-title div,
+  body:not(.report-view) .app-shell.is-sidebar-collapsed .tool-action.clear-input,
+  body:not(.report-view) .app-shell.is-sidebar-collapsed .tool-action.reset-page,
+  body:not(.report-view) .sidebar.is-collapsed .tool-action.clear-input,
+  body:not(.report-view) .sidebar.is-collapsed .tool-action.reset-page,
+  body:not(.report-view) .app-shell.is-sidebar-collapsed .step-panel,
+  body:not(.report-view) .sidebar.is-collapsed .step-panel {
+    display: grid;
+  }
+
+  body:not(.report-view) .app-shell.is-sidebar-collapsed .tools-actions,
+  body:not(.report-view) .sidebar.is-collapsed .tools-actions {
+    grid-template-columns: repeat(3, 2.35rem);
+  }
+
+  body:not(.report-view) .setup-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  body:not(.report-view) .sidebar-tools {
+    grid-column: 1 / -1;
+  }
+
+  body:not(.report-view) .target-class-list {
+    max-height: none;
+  }
+}
+
+@media (max-width: 1180px) {
+  .topbar,
+  body:not(.report-view) .topbar {
+    position: static;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.7rem;
+    min-height: 0;
+    padding: 0.75rem;
+  }
+
+  .topbar > .top-brand,
+  body:not(.report-view) .top-brand {
+    grid-column: 1;
+    grid-template-columns: 3rem minmax(0, 1fr);
+    min-width: 0;
+  }
+
+  .topbar > .top-menu,
+  body:not(.report-view) .topbar > .top-menu {
+    position: static;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+    transform: none;
+  }
+
+  .topbar > .operator-cluster,
+  body:not(.report-view) .topbar > .operator-cluster {
+    grid-column: 2;
+    grid-row: 1;
+    width: auto;
+    margin: 0;
+    justify-content: flex-end;
+  }
+
+  body:not(.report-view) .workspace {
+    padding: 0.7rem;
+  }
+
+  body:not(.report-view) .setup-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .preview-header,
+  .intel-panel-head {
+    align-items: flex-start;
+  }
+
+  body:not(.report-view) .live-frame {
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    aspect-ratio: 16 / 10;
+    margin: 0;
+  }
+
+  .feed-control-bar,
+  .video-bar {
+    gap: 0.35rem;
+  }
+
+  .feed-control-bar .feed-progress,
+  .video-bar .progress {
+    flex-basis: 100%;
+    order: 10;
+  }
+}
+
+/* Keep the complete operator context on tablets; reserve the compact header
+   treatment for phone-width displays only. */
+@media (max-width: 820px) {
+  .clock,
+  .status-pills,
+  .operator,
+  .logout-button {
+    display: none;
+  }
+}
+
+/* Tablet / iPad: keep the preview in the initial viewport.  Configuration
+   scrolls inside its own left rail instead of pushing Stream, Video, or Image
+   preview below the fold. */
+@media (min-width: 768px) and (max-width: 1180px) {
+  body:not(.report-view) .app-shell,
+  body:not(.report-view) .app-shell.is-sidebar-collapsed {
+    grid-template-columns: minmax(17rem, 20rem) minmax(0, 1fr);
+    grid-template-areas:
+      "topbar topbar"
+      "sidebar workspace";
+  }
+
+  body:not(.report-view) .sidebar,
+  body:not(.report-view) .sidebar.is-collapsed,
+  body:not(.report-view) .app-shell.is-sidebar-collapsed .sidebar {
+    position: sticky;
+    top: 0;
+    height: calc(100vh - 8rem);
+    padding: 0.65rem;
+    overflow-y: auto;
+    border-right: 1px solid var(--line);
+    border-bottom: 0;
+  }
+
+  body:not(.report-view) .setup-grid {
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+  }
+
+  body:not(.report-view) .workspace {
+    min-width: 0;
+    padding: 0.75rem;
+  }
+
+  body:not(.report-view) .content-grid {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+
+  body:not(.report-view) .preview-panel {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: start;
+  }
+
+  body:not(.report-view) .live-frame {
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    aspect-ratio: 16 / 10;
+    margin: 0;
+  }
+
+  body:not(.report-view) .intel-stack {
+    grid-column: 1;
+    grid-row: 2;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+  }
+}
+
+/* Use the additional room available on TV and wall-display resolutions without
+   making the primary live feed unnecessarily narrow. */
+@media (min-width: 1800px) and (min-height: 900px) {
+  body:not(.report-view) .app-shell {
+    grid-template-columns: minmax(22rem, 24rem) minmax(0, 1fr);
+  }
+
+  body:not(.report-view) .workspace {
+    padding: 1rem 1.25rem 1.25rem;
+  }
+
+  body:not(.report-view) .content-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(28rem, 31rem);
+    gap: 1rem;
+  }
+
+  body:not(.report-view) .live-frame {
+    height: clamp(34rem, calc(100vh - 16rem), 56rem);
+    max-height: none;
+  }
+
+  .intel-stack {
+    height: calc(100vh - 7.6rem);
+    min-height: calc(100vh - 7.6rem);
+    max-height: calc(100vh - 7.6rem);
+  }
+}
+
+/* Keep the left navigation rail compact: it contains only the collapsed
+   navigation controls, so it should end with its content rather than occupy
+   the full viewport and expose an unnecessary scrollbar. */
+@media (min-width: 1181px) {
+  body:not(.report-view) .content-grid {
+    grid-template-columns: minmax(0, 2.2fr) minmax(17rem, 20rem);
+  }
+
+  body:not(.report-view) .live-frame {
+    width: calc(100% - 1rem);
+    height: clamp(30rem, calc(100vh - 13rem), 52rem);
+    min-height: 28rem;
+    margin-inline: 0.5rem;
+  }
+
+  body:not(.report-view) .sidebar,
+  body:not(.report-view) .sidebar.is-collapsed,
+  body:not(.report-view) .app-shell.is-sidebar-collapsed .sidebar {
+    align-self: start;
+    height: auto;
+    max-height: none;
+    overflow: hidden;
+    padding: 0.45rem;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1180px) {
+  body:not(.report-view) .sidebar,
+  body:not(.report-view) .sidebar.is-collapsed,
+  body:not(.report-view) .app-shell.is-sidebar-collapsed .sidebar {
+    height: auto;
+    max-height: none;
+    overflow: hidden;
+  }
+}
+
+/* Denser left-side configuration panels: preserve every control while using
+   less vertical space in the detection workspace. */
+@media (min-width: 1181px) {
+  body:not(.report-view) .setup-grid {
+    gap: 0.42rem;
+    margin-top: 0.45rem;
+  }
+
+  body:not(.report-view) .sidebar-tools,
+  body:not(.report-view) .step-panel,
+  body:not(.report-view) .target-class-panel {
+    padding: 0.46rem;
+    border-radius: 0.65rem;
+  }
+
+  body:not(.report-view) .sidebar-tools {
+    min-height: 2.75rem;
+    gap: 0.45rem;
+  }
+
+  body:not(.report-view) .tools-title {
+    grid-template-columns: 2.1rem minmax(0, 1fr);
+    gap: 0.45rem;
+  }
+
+  body:not(.report-view) .tools-mark {
+    width: 2.1rem;
+    height: 2.1rem;
+  }
+
+  body:not(.report-view) .tools-title > div strong {
+    font-size: 0.78rem;
+  }
+
+  body:not(.report-view) .tools-actions {
+    grid-template-columns: repeat(3, 1.95rem);
+    gap: 0.3rem;
+  }
+
+  body:not(.report-view) .tool-action {
+    width: 1.95rem;
+    height: 1.95rem;
+    border-radius: 0.48rem;
+  }
+
+  body:not(.report-view) .input-source-panel {
+    gap: 0.46rem;
+  }
+
+  body:not(.report-view) .step-head h2,
+  body:not(.report-view) .target-head-copy strong {
+    font-size: 0.78rem;
+  }
+
+  body:not(.report-view) .step-number {
+    width: 1.6rem;
+    height: 1.6rem;
+    font-size: 0.68rem;
+  }
+
+  body:not(.report-view) .source-mode-switch {
+    gap: 0.3rem;
+  }
+
+  body:not(.report-view) .source-mode-pill {
+    min-height: 2rem;
+    gap: 0.26rem;
+    padding: 0.35rem 0.4rem;
+    border-radius: 0.5rem;
+    font-size: 0.64rem;
+  }
+
+  body:not(.report-view) .source-mode-pill .source-mode-icon {
+    font-size: 0.76rem;
+  }
+
+  body:not(.report-view) .stream-source-panel,
+  body:not(.report-view) .single-upload-panel,
+  body:not(.report-view) .stream-source-list {
+    gap: 0.35rem;
+  }
+
+  body:not(.report-view) .stream-source-row {
+    gap: 0.25rem;
+  }
+
+  body:not(.report-view) .stream-source-label {
+    font-size: 0.58rem;
+  }
+
+  body:not(.report-view) .stream-source-row input,
+  body:not(.report-view) .stream-remove-button {
+    min-height: 2.15rem;
+    height: 2.15rem;
+    padding-block: 0;
+    border-radius: 0.48rem;
+    font-size: 0.66rem;
+  }
+
+  body:not(.report-view) .single-upload-card {
+    grid-template-columns: 2rem minmax(0, 1fr) auto;
+    gap: 0.48rem;
+    min-height: 3.1rem;
+    padding: 0.5rem 0.58rem;
+    border-radius: 0.58rem;
+  }
+
+  body:not(.report-view) .single-upload-icon {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.48rem;
+    font-size: 0.78rem;
+  }
+
+  body:not(.report-view) .single-upload-copy strong,
+  body:not(.report-view) .single-upload-action {
+    font-size: 0.66rem;
+  }
+
+  body:not(.report-view) .detect-action-button strong {
+    font-size: 0.64rem;
+  }
+
+  body:not(.report-view) .detect-actions-row {
+    gap: 0.3rem;
+    margin-top: 0.1rem;
+  }
+
+  body:not(.report-view) .detect-action-button {
+    min-height: 1.9rem;
+    padding: 0.35rem 0.42rem;
+  }
+
+  body:not(.report-view) .target-class-panel {
+    gap: 0.25rem;
+  }
+
+  body:not(.report-view) .target-class-head {
+    gap: 0.42rem;
+    padding-bottom: 0.28rem;
+  }
+
+  body:not(.report-view) .target-class-list {
+    gap: 0.16rem;
+    max-height: none;
+    overflow: visible;
+    padding-top: 0;
+  }
+
+  body:not(.report-view) .target-class-row {
+    min-height: 1.82rem;
+    gap: 0.4rem;
+    padding: 0.25rem 0.15rem;
+    border-radius: 0.45rem;
+  }
+
+  body:not(.report-view) .target-class-copy strong {
+    font-size: 0.62rem;
+  }
+}
+
+@media (max-width: 560px) {
+  html {
+    font-size: 14px;
+  }
+
+  .top-brand-copy strong {
+    font-size: 0.82rem;
+  }
+
+  .top-brand-copy span {
+    font-size: 0.7rem;
+  }
+
+  .top-menu-item {
+    min-width: 0;
+    padding-inline: 0.45rem;
+    font-size: 0.7rem;
+  }
+
+  .source-mode-switch {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .source-mode-pill {
+    min-width: 0;
+    padding-inline: 0.3rem;
+    font-size: 0.64rem;
+  }
+
+  .source-mode-pill .source-mode-icon {
+    display: none;
+  }
+
+  .single-upload-card {
+    grid-template-columns: 2.4rem minmax(0, 1fr);
+    gap: 0.6rem;
+  }
+
+  .single-upload-action {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .detect-actions-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .summary-panel .summary-lane .metric-grid,
+  body:not(.report-view) .intel-stack > .summary-panel .summary-lane .metric-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .intel-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .intel-tab {
+    min-width: 0;
+    padding-inline: 0.35rem;
+  }
+}
+
+/* A collapsed navigation rail releases horizontal space only to the preview.
+   Keep the right-side intelligence rail fixed so its panels do not reflow. */
+@media (min-width: 1181px) {
+  /* This must match the specificity of the normal desktop app-shell rule.
+     Without it, the collapsed state keeps the original 21.5rem sidebar track. */
+  body:not(.report-view) .app-shell.is-sidebar-collapsed {
+    grid-template-columns: 4.6rem minmax(0, 1fr);
+  }
+
+  body:not(.report-view) .app-shell.is-sidebar-collapsed .workspace {
+    /* The normal max-width was holding the whole dashboard at its former
+       width, even after the sidebar released space. */
+    max-width: none;
+    margin-inline: 0;
+  }
+
+  body:not(.report-view) .app-shell.is-sidebar-collapsed .content-grid {
+    grid-template-columns: minmax(0, 1fr) 20rem;
+    width: 100%;
+  }
+
+  body:not(.report-view) .app-shell.is-sidebar-collapsed .preview-panel {
+    width: 100%;
+  }
+
+  body:not(.report-view) .app-shell.is-sidebar-collapsed .preview-panel .live-frame {
+    width: 100%;
+    margin-inline: 0;
+  }
+
+  body:not(.report-view) .app-shell.is-sidebar-collapsed .intel-stack {
+    width: 20rem;
+    justify-self: end;
+  }
+}
+
+/* Keep the system name visible in the compact mobile header. */
+@media (max-width: 820px) {
+  .topbar > .top-brand .top-brand-copy,
+  body:not(.report-view) .topbar > .top-brand .top-brand-copy {
+    display: block !important;
+    min-width: 0;
+    visibility: visible;
+    opacity: 1;
+  }
+
+  .topbar > .top-brand .top-brand-copy strong,
+  .topbar > .top-brand .top-brand-copy span {
+    display: block !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }

@@ -11,3 +11,4 @@ vite-start.log
 __pycache__/
 *.pyc
 tmp_export_review/
+target_detection_reports.sqlite3

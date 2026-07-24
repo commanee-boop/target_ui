@@ -1,26 +1,37 @@
 from __future__ import annotations
 
 import base64
+import json
 import os
 import re
+import shutil
+import sqlite3
 import tempfile
+import threading
 import time
+import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
+# Prefer RTSP-over-TCP before OpenCV initializes FFmpeg.  TCP works more
+# reliably across Wi-Fi, VPN, and NAT than the UDP default used by many feeds.
+os.environ.setdefault("OPENCV_FFMPEG_CAPTURE_OPTIONS", "rtsp_transport;tcp")
+
 import cv2
 import numpy as np
-from flask import Flask, jsonify, request
+from flask import Flask, Response, jsonify, request, stream_with_context
 from ultralytics import YOLO
 
 
 ROOT = Path(__file__).resolve().parent
 PUBLIC_MODELS_DIR = ROOT / "public" / "models"
-DEFAULT_MODEL_NAME = "rm-img.pt"
+REPORT_DATABASE_PATH = ROOT / "target_detection_reports.sqlite3"
+DEFAULT_MODEL_NAME = "exp-7.pt"
 TARGET_KEYS = ("MV", "AMV", "LMV", "AFV", "CV", "MCV")
 MODEL_CACHE: dict[str, YOLO] = {}
-YOLO_CONF = 0.7
+YOLO_CONF = 0.25
 YOLO_IOU = 0.7
 YOLO_IMGSZ = 1280
 VIDEO_SNAPSHOT_INTERVAL_SEC = 10.0
@@ -37,11 +48,269 @@ STREAM_ANALYSIS_MAX_SECONDS = 18.0
 STREAM_EMPTY_READ_RETRY_LIMIT = 40
 STREAM_EMPTY_READ_DELAY_SEC = 0.15
 REMOTE_REQUEST_TIMEOUT_SEC = 12.0
+STREAM_PREVIEW_FPS = 10.0
+STREAM_PREVIEW_JPEG_QUALITY = 80
+STREAM_OPEN_TIMEOUT_MSEC = 10_000
+STREAM_READ_TIMEOUT_MSEC = 8_000
+LIVE_VIDEO_TARGET_FPS = 8.0
+LIVE_VIDEO_IMGSZ = 1280
+LIVE_TRACK_TTL_SEC = 2.0
+LIVE_TRACK_IOU_THRESHOLD = 0.35
+LIVE_UNIQUE_CENTER_DISTANCE_RATIO = 0.05
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 VIDEO_EXTENSIONS = {".mp4", ".mov", ".avi", ".mkv", ".m4v", ".webm"}
 
 app = Flask(__name__)
+VIDEO_SESSIONS: dict[str, dict] = {}
+VIDEO_SESSIONS_LOCK = threading.Lock()
+REPORT_DATABASE_LOCK = threading.Lock()
+
+
+def open_stream_capture(source_url: str):
+    """Open a network stream with bounded waits where OpenCV supports it."""
+    try:
+        return cv2.VideoCapture(
+            source_url,
+            cv2.CAP_FFMPEG,
+            [
+                cv2.CAP_PROP_OPEN_TIMEOUT_MSEC,
+                STREAM_OPEN_TIMEOUT_MSEC,
+                cv2.CAP_PROP_READ_TIMEOUT_MSEC,
+                STREAM_READ_TIMEOUT_MSEC,
+            ],
+        )
+    except (TypeError, cv2.error):
+        return cv2.VideoCapture(source_url, cv2.CAP_FFMPEG)
+
+
+def stream_preview_frames(source_url: str, model: YOLO):
+    """Run Ultralytics on a camera/video source and relay annotated MJPEG frames."""
+    capture = None
+    frame_interval = 1.0 / STREAM_PREVIEW_FPS
+
+    try:
+        while True:
+            if capture is None or not capture.isOpened():
+                if capture is not None:
+                    capture.release()
+                capture = open_stream_capture(source_url)
+                if not capture.isOpened():
+                    time.sleep(1.0)
+                    continue
+
+            frame_started_at = time.perf_counter()
+            ok, frame = capture.read()
+            if not ok or frame is None:
+                capture.release()
+                capture = None
+                time.sleep(0.3)
+                continue
+
+            try:
+                result = model.predict(
+                    source=frame,
+                    imgsz=YOLO_IMGSZ,
+                    conf=YOLO_CONF,
+                    iou=YOLO_IOU,
+                    verbose=False,
+                )[0]
+                frame = result.plot(boxes=True, labels=True)
+            except Exception:
+                # Preserve the camera preview if an individual inference frame fails.
+                pass
+
+            encoded_ok, encoded_frame = cv2.imencode(
+                ".jpg",
+                frame,
+                [int(cv2.IMWRITE_JPEG_QUALITY), STREAM_PREVIEW_JPEG_QUALITY],
+            )
+            if encoded_ok:
+                yield (
+                    b"--frame\r\n"
+                    b"Content-Type: image/jpeg\r\n\r\n"
+                    + encoded_frame.tobytes()
+                    + b"\r\n"
+                )
+
+            remaining_delay = frame_interval - (time.perf_counter() - frame_started_at)
+            if remaining_delay > 0:
+                time.sleep(remaining_delay)
+    finally:
+        if capture is not None:
+            capture.release()
+
+
+def video_session_payload(session: dict) -> dict:
+    return {
+        "sessionId": session["id"],
+        "status": session["status"],
+        "metrics": session["metrics"],
+        "total": session["total"],
+        "media": session["media"],
+        "framesProcessed": session["framesProcessed"],
+        "detections": session.get("detections", []),
+        "timelineEvents": session.get("timelineEvents", []),
+        "snapshots": session.get("snapshots", []),
+        "previewImage": session.get("previewImage"),
+        "streamPath": f"/api/video-sessions/{session['id']}/stream",
+        "playback": session.get("playback", {}),
+    }
+
+
+def stream_annotated_video_session(session_id: str):
+    """Run inference and emit an annotated video at a stable preview rate."""
+    with VIDEO_SESSIONS_LOCK:
+        session = VIDEO_SESSIONS.get(session_id)
+    if session is None:
+        return
+
+    capture = cv2.VideoCapture(str(session["path"]))
+    if not capture.isOpened():
+        with VIDEO_SESSIONS_LOCK:
+            session["status"] = "error"
+            session["error"] = "Unable to open uploaded video"
+        return
+
+    source_fps = float(capture.get(cv2.CAP_PROP_FPS) or 0)
+    frame_stride = max(1, round(source_fps / LIVE_VIDEO_TARGET_FPS)) if source_fps else 1
+    frame_index = 0
+    frame_interval = 1.0 / LIVE_VIDEO_TARGET_FPS
+
+    try:
+        while True:
+            with VIDEO_SESSIONS_LOCK:
+                if not session.get("active", False):
+                    break
+                playback = session["playback"]
+                if playback.pop("restartRequested", False):
+                    capture.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                    frame_index = 0
+                    playback["currentTime"] = 0.0
+                seek_time = playback.pop("seekTime", None)
+                if seek_time is not None:
+                    capture.set(cv2.CAP_PROP_POS_MSEC, float(seek_time) * 1000)
+                    frame_index = int(round(float(seek_time) * source_fps)) if source_fps else 0
+                    playback["currentTime"] = float(seek_time)
+                paused = bool(playback.get("paused", False))
+                playback_rate = float(playback.get("rate", 1.0))
+
+            if paused:
+                time.sleep(0.08)
+                continue
+
+            ok, frame = capture.read()
+            if not ok or frame is None:
+                capture.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                frame_index = 0
+                continue
+
+            if frame_index % frame_stride:
+                frame_index += 1
+                continue
+
+            frame_started_at = time.perf_counter()
+            try:
+                result = session["model"].predict(
+                    source=frame,
+                    imgsz=LIVE_VIDEO_IMGSZ,
+                    conf=YOLO_CONF,
+                    iou=YOLO_IOU,
+                    verbose=False,
+                )[0]
+            except Exception as error:
+                with VIDEO_SESSIONS_LOCK:
+                    session["status"] = "error"
+                    session["error"] = f"Video inference failed: {error}"
+                return
+            detection = serialize_result(result, session["selectedTargets"])
+            plotted_frame = result.plot(boxes=True, labels=True)
+            video_time_sec = float(capture.get(cv2.CAP_PROP_POS_MSEC) or 0) / 1000
+            if video_time_sec <= 0 and source_fps > 0:
+                video_time_sec = frame_index / source_fps
+
+            timeline_moment = None
+            snapshot_moment = None
+            if detection["total"] > 0:
+                duration_sec = session["media"].get("durationSec")
+                with VIDEO_SESSIONS_LOCK:
+                    last_snapshot_time = float(session.get("lastSnapshotTime", -float("inf")))
+
+                if video_time_sec - last_snapshot_time >= STREAM_SNAPSHOT_INTERVAL_SEC:
+                    snapshot_moment = build_detection_moment(
+                        detection,
+                        time_sec=video_time_sec,
+                        duration_sec=duration_sec,
+                        image=plotted_frame,
+                        image_max_width=SNAPSHOT_IMAGE_MAX_WIDTH,
+                        image_quality=SNAPSHOT_IMAGE_QUALITY,
+                    )
+            encoded_ok, encoded_frame = cv2.imencode(
+                ".jpg",
+                plotted_frame,
+                [int(cv2.IMWRITE_JPEG_QUALITY), STREAM_PREVIEW_JPEG_QUALITY],
+            )
+
+            with VIDEO_SESSIONS_LOCK:
+                confirmed_detections, newly_visible = update_live_tracks(
+                    session,
+                    detection["detections"],
+                    time.monotonic(),
+                )
+                newly_counted = register_unique_detections(session, detection["detections"])
+                for confirmed in newly_counted:
+                    session["cumulativeMetrics"][confirmed["targetKey"]] += 1
+
+                # Timeline is an event stream: add a point only when tracking
+                # sees a new object, not every frame where the same object remains.
+                if newly_visible:
+                    new_metrics = empty_metrics()
+                    for confirmed in newly_visible:
+                        new_metrics[confirmed["targetKey"]] += 1
+                    timeline_moment = build_detection_moment(
+                        {
+                            "detections": newly_visible,
+                            "metrics": new_metrics,
+                            "total": len(newly_visible),
+                        },
+                        time_sec=video_time_sec,
+                        duration_sec=session["media"].get("durationSec"),
+                        image=plotted_frame,
+                    )
+
+                session["metrics"] = session["cumulativeMetrics"].copy()
+                session["total"] = sum(session["cumulativeMetrics"].values())
+                session["detections"] = confirmed_detections[:12]
+                session["framesProcessed"] += 1
+                session["status"] = "streaming"
+                session["playback"]["currentTime"] = round(video_time_sec, 2)
+                if timeline_moment is not None:
+                    session["timelineEvents"].append(timeline_moment)
+                    session["timelineEvents"] = session["timelineEvents"][-VIDEO_TIMELINE_MAX_SAMPLES:]
+                    session["lastTimelineTime"] = video_time_sec
+                if snapshot_moment is not None:
+                    session["snapshots"].append(snapshot_moment)
+                    session["snapshots"] = session["snapshots"][-STREAM_ANALYSIS_MAX_SAMPLES:]
+                    session["lastSnapshotTime"] = video_time_sec
+                    session["previewImage"] = snapshot_moment["image"]
+
+            if encoded_ok:
+                yield (
+                    b"--frame\r\n"
+                    b"Content-Type: image/jpeg\r\n\r\n"
+                    + encoded_frame.tobytes()
+                    + b"\r\n"
+                )
+            frame_index += 1
+
+            # VideoCapture reads from disk as fast as it can. Pace the MJPEG
+            # output so a selected video plays while detections are generated,
+            # instead of finishing the clip immediately.
+            remaining_delay = (frame_interval / max(playback_rate, 0.25)) - (time.perf_counter() - frame_started_at)
+            if remaining_delay > 0:
+                time.sleep(remaining_delay)
+    finally:
+        capture.release()
 
 
 def normalize_token(value: str) -> str:
@@ -50,6 +319,157 @@ def normalize_token(value: str) -> str:
 
 def empty_metrics() -> dict[str, int]:
     return {key: 0 for key in TARGET_KEYS}
+
+
+def report_database_connection() -> sqlite3.Connection:
+    connection = sqlite3.connect(str(REPORT_DATABASE_PATH))
+    connection.row_factory = sqlite3.Row
+    return connection
+
+
+def initialize_report_database() -> None:
+    """Create the local, persistent report store on first server start."""
+    with REPORT_DATABASE_LOCK, report_database_connection() as connection:
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS detection_reports (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                created_at TEXT NOT NULL,
+                payload TEXT NOT NULL
+            )
+            """
+        )
+
+
+def report_metric_value(value: object) -> int:
+    try:
+        return max(0, int(float(value or 0)))
+    except (TypeError, ValueError):
+        return 0
+
+
+def normalize_report_payload(payload: dict) -> dict:
+    """Keep persisted report records predictable even when requests are edited."""
+    metrics = payload.get("metrics") if isinstance(payload.get("metrics"), dict) else {}
+    tags = payload.get("tags") if isinstance(payload.get("tags"), list) else []
+    kind = "image" if str(payload.get("kind", "")).lower() == "image" else "video"
+    return {
+        "name": str(payload.get("name") or "").strip()[:180],
+        "source": str(payload.get("source") or "-").strip()[:1000],
+        "ext": str(payload.get("ext") or ("JPG" if kind == "image" else "MP4")).upper()[:12],
+        "kind": kind,
+        "duration": str(payload.get("duration") or ("ภาพนิ่ง" if kind == "image" else "-"))[:60],
+        "date": str(payload.get("date") or "-")[:60],
+        "time": str(payload.get("time") or "-")[:60],
+        "size": str(payload.get("size") or "-")[:60],
+        "resolution": str(payload.get("resolution") or "-")[:60],
+        "fps": str(payload.get("fps") or "-")[:30],
+        "recorder": str(payload.get("recorder") or "admin")[:120],
+        "tags": [str(tag).upper() for tag in tags if str(tag).upper() in TARGET_KEYS],
+        "metrics": {
+            target: report_metric_value(metrics.get(target, 0))
+            for target in TARGET_KEYS
+        },
+        "image": str(payload.get("image") or "")[:8_000_000],
+        "model": str(payload.get("model") or "-")[:120],
+        "modelFile": str(payload.get("modelFile") or "-")[:255],
+    }
+
+
+initialize_report_database()
+
+
+def box_iou(first_box: list[float], second_box: list[float]) -> float:
+    """Return IoU for two [x1, y1, x2, y2] detection boxes."""
+    first_x1, first_y1, first_x2, first_y2 = first_box
+    second_x1, second_y1, second_x2, second_y2 = second_box
+    intersection_width = max(0.0, min(first_x2, second_x2) - max(first_x1, second_x1))
+    intersection_height = max(0.0, min(first_y2, second_y2) - max(first_y1, second_y1))
+    intersection = intersection_width * intersection_height
+    first_area = max(0.0, first_x2 - first_x1) * max(0.0, first_y2 - first_y1)
+    second_area = max(0.0, second_x2 - second_x1) * max(0.0, second_y2 - second_y1)
+    union = first_area + second_area - intersection
+    return intersection / union if union > 0 else 0.0
+
+
+def is_same_unique_object(first: dict, second: dict, width: int, height: int) -> bool:
+    """Match a detection to a previously counted object without double-counting it."""
+    if first["targetKey"] != second["targetKey"]:
+        return False
+    if box_iou(first["box"], second["box"]) >= LIVE_TRACK_IOU_THRESHOLD:
+        return True
+
+    first_x1, first_y1, first_x2, first_y2 = first["box"]
+    second_x1, second_y1, second_x2, second_y2 = second["box"]
+    first_center = ((first_x1 + first_x2) / 2, (first_y1 + first_y2) / 2)
+    second_center = ((second_x1 + second_x2) / 2, (second_y1 + second_y2) / 2)
+    center_distance = ((first_center[0] - second_center[0]) ** 2 + (first_center[1] - second_center[1]) ** 2) ** 0.5
+    frame_diagonal = (max(width, 1) ** 2 + max(height, 1) ** 2) ** 0.5
+    return center_distance / frame_diagonal <= LIVE_UNIQUE_CENTER_DISTANCE_RATIO
+
+
+def register_unique_detections(session: dict, detections: list[dict]) -> list[dict]:
+    """Return only detections not yet counted during this live-video session."""
+    known_objects = session.setdefault("seenObjects", [])
+    media = session.get("media", {})
+    width = int(media.get("width") or 1)
+    height = int(media.get("height") or 1)
+    newly_counted = []
+    matched_known_indices: set[int] = set()
+
+    for detection in detections:
+        matching_index = next(
+            (
+                index
+                for index, known in enumerate(known_objects)
+                if index not in matched_known_indices
+                and is_same_unique_object(known, detection, width, height)
+            ),
+            None,
+        )
+        if matching_index is None:
+            known_objects.append({**detection})
+            matched_known_indices.add(len(known_objects) - 1)
+            newly_counted.append(detection)
+        else:
+            known_objects[matching_index].update(detection)
+            matched_known_indices.add(matching_index)
+
+    return newly_counted
+
+
+def update_live_tracks(session: dict, detections: list[dict], observed_at: float) -> tuple[list[dict], list[dict]]:
+    """Keep high-confidence detections visible across adjacent video frames."""
+    active_tracks = [
+        track for track in session.get("tracks", [])
+        if observed_at - float(track.get("lastSeenAt", 0)) <= LIVE_TRACK_TTL_SEC
+    ]
+
+    newly_confirmed = []
+    matched_track_indices: set[int] = set()
+    for detection in detections:
+        matching_index = next(
+            (
+                index
+                for index, track in enumerate(active_tracks)
+                if index not in matched_track_indices
+                if track["targetKey"] == detection["targetKey"]
+                and box_iou(track["box"], detection["box"]) >= LIVE_TRACK_IOU_THRESHOLD
+            ),
+            None,
+        )
+        if matching_index is None:
+            active_tracks.append({**detection, "lastSeenAt": observed_at})
+            matched_track_indices.add(len(active_tracks) - 1)
+            newly_confirmed.append(detection)
+        else:
+            active_tracks[matching_index].update(detection)
+            active_tracks[matching_index]["lastSeenAt"] = observed_at
+            matched_track_indices.add(matching_index)
+
+    session["tracks"] = active_tracks
+    visible_tracks = [{key: value for key, value in track.items() if key != "lastSeenAt"} for track in active_tracks]
+    return visible_tracks, newly_confirmed
 
 
 def list_models() -> list[dict[str, str | int]]:
@@ -372,7 +792,7 @@ def run_image_detection_source(model: YOLO, source, selected_targets: set[str]) 
         verbose=False,
     )[0]
     payload = serialize_result(result, selected_targets)
-    preview_image = result.plot()
+    preview_image = result.plot(boxes=True, labels=True)
     height, width = result.orig_shape
     media = build_media_payload(
         source_kind="image",
@@ -473,7 +893,7 @@ def run_seekable_video_detection(
                 verbose=False,
             )[0]
             payload = serialize_result(result, selected_targets)
-            plotted_frame = result.plot()
+            plotted_frame = result.plot(boxes=False, labels=False)
             actual_time_sec = (frame_index / fps) if fps > 0 else min(sample_requests[frame_index]["requestedTimes"])
             if frame_index in metric_frame_indices:
                 for key in TARGET_KEYS:
@@ -548,7 +968,7 @@ def run_stream_detection(
     *,
     source_kind: str = "stream",
 ) -> dict:
-    capture = cv2.VideoCapture(source_url)
+    capture = open_stream_capture(source_url)
     if not capture.isOpened():
         raise ValueError("Unable to open stream source")
 
@@ -601,7 +1021,7 @@ def run_stream_detection(
                 verbose=False,
             )[0]
             payload = serialize_result(result, selected_targets)
-            plotted_frame = result.plot()
+            plotted_frame = result.plot(boxes=False, labels=False)
 
             for key in TARGET_KEYS:
                 aggregate_metrics[key] += int(payload["metrics"].get(key, 0))
@@ -682,9 +1102,60 @@ def run_stream_detection(
 @app.after_request
 def add_cors_headers(response):
     response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "GET,POST,OPTIONS"
+    response.headers["Access-Control-Allow-Methods"] = "GET,POST,DELETE,OPTIONS"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type"
     return response
+
+
+@app.route("/api/reports", methods=["GET", "POST", "OPTIONS"])
+def reports():
+    if request.method == "OPTIONS":
+        return ("", 204)
+
+    if request.method == "POST":
+        incoming = request.get_json(silent=True)
+        if not isinstance(incoming, dict):
+            return jsonify({"error": "Report JSON is required"}), 400
+
+        record = normalize_report_payload(incoming)
+        if not record["name"]:
+            return jsonify({"error": "Report name is required"}), 400
+
+        created_at = datetime.now(timezone.utc).isoformat()
+        with REPORT_DATABASE_LOCK, report_database_connection() as connection:
+            cursor = connection.execute(
+                "INSERT INTO detection_reports (created_at, payload) VALUES (?, ?)",
+                (created_at, json.dumps(record, ensure_ascii=False, separators=(",", ":"))),
+            )
+            report_id = cursor.lastrowid
+
+        return jsonify({"report": {**record, "id": report_id, "createdAt": created_at}}), 201
+
+    records = []
+    with REPORT_DATABASE_LOCK, report_database_connection() as connection:
+        rows = connection.execute(
+            "SELECT id, created_at, payload FROM detection_reports ORDER BY id DESC"
+        ).fetchall()
+    for row in rows:
+        try:
+            payload = json.loads(row["payload"])
+        except json.JSONDecodeError:
+            continue
+        if isinstance(payload, dict):
+            records.append({**payload, "id": row["id"], "createdAt": row["created_at"]})
+    return jsonify({"reports": records})
+
+
+@app.route("/api/reports/<int:report_id>", methods=["DELETE", "OPTIONS"])
+def delete_report(report_id: int):
+    if request.method == "OPTIONS":
+        return ("", 204)
+
+    with REPORT_DATABASE_LOCK, report_database_connection() as connection:
+        cursor = connection.execute("DELETE FROM detection_reports WHERE id = ?", (report_id,))
+    if cursor.rowcount == 0:
+        return jsonify({"error": "Report not found"}), 404
+    return ("", 204)
 
 
 @app.route("/api/health", methods=["GET", "OPTIONS"])
@@ -692,9 +1163,16 @@ def health():
     if request.method == "OPTIONS":
         return ("", 204)
     models = list_models()
+    default_model_path = PUBLIC_MODELS_DIR / DEFAULT_MODEL_NAME
     return jsonify(
         {
-            "status": "ready" if models else "missing-models",
+            # The UI is configured for DEFAULT_MODEL_NAME, so another checkpoint
+            # in this directory must not make the configured model look ready.
+            "status": "ready" if default_model_path.is_file() else "missing-models",
+            "apiVersion": 2,
+            "features": {
+                "videoSessions": True,
+            },
             "models": models,
             "defaultModel": DEFAULT_MODEL_NAME,
             "inference": {
@@ -703,6 +1181,199 @@ def health():
                 "imgsz": YOLO_IMGSZ,
             },
         }
+    )
+
+
+@app.route("/api/stream", methods=["GET", "OPTIONS"])
+def stream_preview():
+    if request.method == "OPTIONS":
+        return ("", 204)
+
+    source_url = (request.args.get("sourceUrl") or "").strip()
+    if not source_url:
+        return jsonify({"error": "sourceUrl is required"}), 400
+
+    try:
+        model_path = resolve_model_path(request.args.get("modelId"), request.args.get("modelFileName"))
+        model = get_model(model_path)
+    except Exception as error:
+        return jsonify({"error": f"Unable to load detection model: {error}"}), 500
+
+    # Fail before opening the long-lived response so the browser can show its
+    # fallback preview when an address is unavailable or malformed.
+    probe = open_stream_capture(source_url)
+    is_available = probe.isOpened()
+    probe.release()
+    if not is_available:
+        return jsonify({"error": "Unable to open stream source"}), 502
+
+    return Response(
+        stream_with_context(stream_preview_frames(source_url, model)),
+        mimetype="multipart/x-mixed-replace; boundary=frame",
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+@app.route("/api/video-sessions", methods=["POST", "OPTIONS"])
+def create_video_session():
+    if request.method == "OPTIONS":
+        return ("", 204)
+
+    source_file = request.files.get("source")
+    if source_file is None or not source_file.filename:
+        return jsonify({"error": "Video file is required"}), 400
+
+    selected_targets = {
+        target.strip().upper()
+        for target in request.form.get("selectedTargets", "").split(",")
+        if target.strip()
+    }
+    model_path = resolve_model_path(request.form.get("modelId"), request.form.get("modelFileName"))
+    try:
+        model = get_model(model_path)
+    except Exception as error:
+        return jsonify({"error": f"Unable to start video detection: failed to load model ({error})"}), 500
+
+    session_dir = Path(tempfile.mkdtemp(prefix="target-ui-live-video-"))
+    video_path = session_dir / Path(source_file.filename).name
+    source_file.save(video_path)
+
+    capture = cv2.VideoCapture(str(video_path))
+    if not capture.isOpened():
+        capture.release()
+        shutil.rmtree(session_dir, ignore_errors=True)
+        return jsonify({"error": "Unable to open uploaded video"}), 422
+
+    fps = float(capture.get(cv2.CAP_PROP_FPS) or 0)
+    frame_count = int(capture.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
+    width = int(capture.get(cv2.CAP_PROP_FRAME_WIDTH) or 0)
+    height = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT) or 0)
+    capture.release()
+
+    session_id = uuid.uuid4().hex
+    session = {
+        "id": session_id,
+        "directory": session_dir,
+        "path": video_path,
+        "model": model,
+        "selectedTargets": selected_targets,
+        "active": True,
+        "status": "ready",
+        "metrics": empty_metrics(),
+        "total": 0,
+        "framesProcessed": 0,
+        "tracks": [],
+        "seenObjects": [],
+        "cumulativeMetrics": empty_metrics(),
+        "detections": [],
+        "timelineEvents": [],
+        "snapshots": [],
+        "previewImage": None,
+        "playback": {
+            "paused": False,
+            "rate": 1.0,
+            "currentTime": 0.0,
+        },
+        "lastTimelineTime": -float("inf"),
+        "lastSnapshotTime": -float("inf"),
+        "media": build_media_payload(
+            source_kind="video",
+            width=width,
+            height=height,
+            fps=fps,
+            duration_sec=round(frame_count / fps, 2) if fps and frame_count else None,
+            frame_count=frame_count,
+            timeline_interval_sec=STREAM_TIMELINE_INTERVAL_SEC,
+            snapshot_interval_sec=STREAM_SNAPSHOT_INTERVAL_SEC,
+        ),
+    }
+    with VIDEO_SESSIONS_LOCK:
+        VIDEO_SESSIONS[session_id] = session
+    return jsonify(video_session_payload(session)), 201
+
+
+@app.route("/api/video-sessions/<session_id>", methods=["GET", "DELETE"])
+def video_session_status(session_id: str):
+    with VIDEO_SESSIONS_LOCK:
+        session = VIDEO_SESSIONS.get(session_id)
+        if session is None:
+            return jsonify({"error": "Video session not found"}), 404
+
+        if request.method == "GET":
+            payload = video_session_payload(session)
+            if session.get("error"):
+                payload["error"] = session["error"]
+            return jsonify(payload)
+
+        session["active"] = False
+        VIDEO_SESSIONS.pop(session_id, None)
+
+    shutil.rmtree(session["directory"], ignore_errors=True)
+    return ("", 204)
+
+
+@app.route("/api/video-sessions/<session_id>/controls", methods=["POST"])
+def control_video_session(session_id: str):
+    payload = request.get_json(silent=True) or {}
+    action = str(payload.get("action") or "").lower()
+
+    with VIDEO_SESSIONS_LOCK:
+        session = VIDEO_SESSIONS.get(session_id)
+        if session is None:
+            return jsonify({"error": "Video session not found"}), 404
+
+        playback = session["playback"]
+        duration_sec = float(session["media"].get("durationSec") or 0)
+        if action == "play":
+            playback["paused"] = False
+        elif action == "pause":
+            playback["paused"] = True
+        elif action == "stop":
+            playback["restartRequested"] = True
+            playback["paused"] = True
+            playback["currentTime"] = 0.0
+        elif action == "restart":
+            playback["restartRequested"] = True
+            playback["paused"] = False
+        elif action == "seek":
+            try:
+                seek_time = max(0.0, float(payload.get("value", 0)))
+            except (TypeError, ValueError):
+                return jsonify({"error": "Invalid seek time"}), 400
+            playback["seekTime"] = min(seek_time, duration_sec) if duration_sec else seek_time
+        elif action == "rate":
+            try:
+                rate = float(payload.get("value", 1))
+            except (TypeError, ValueError):
+                return jsonify({"error": "Invalid playback rate"}), 400
+            if rate not in {1.0, 1.5, 2.0}:
+                return jsonify({"error": "Playback rate must be 1.0, 1.5, or 2.0"}), 400
+            playback["rate"] = rate
+        else:
+            return jsonify({"error": "Unsupported video control"}), 400
+
+        return jsonify(video_session_payload(session))
+
+
+@app.route("/api/video-sessions/<session_id>/stream", methods=["GET"])
+def video_session_stream(session_id: str):
+    with VIDEO_SESSIONS_LOCK:
+        session = VIDEO_SESSIONS.get(session_id)
+    if session is None:
+        return jsonify({"error": "Video session not found"}), 404
+
+    return Response(
+        stream_with_context(stream_annotated_video_session(session_id)),
+        mimetype="multipart/x-mixed-replace; boundary=frame",
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
     )
 
 
@@ -732,21 +1403,27 @@ def detect():
             source_path = temp_dir / Path(source_file.filename).name
             source_file.save(source_path)
 
-            if source_kind == "video":
-                payload = run_video_detection(model, source_path, selected_targets)
-            else:
-                payload = run_image_detection(model, source_path, selected_targets)
+            try:
+                if source_kind == "video":
+                    payload = run_video_detection(model, source_path, selected_targets)
+                else:
+                    payload = run_image_detection(model, source_path, selected_targets)
+            except ValueError as error:
+                return jsonify({"error": str(error)}), 422
     else:
         source_kind = request.form.get("sourceKind") or guess_url_source_kind(source_url)
-        if source_kind == "image":
-            payload = run_image_detection_source(model, load_remote_image(source_url), selected_targets)
-        else:
-            payload = run_stream_detection(
-                model,
-                source_url,
-                selected_targets,
-                source_kind=source_kind if source_kind in {"video", "stream"} else "stream",
-            )
+        try:
+            if source_kind == "image":
+                payload = run_image_detection_source(model, load_remote_image(source_url), selected_targets)
+            else:
+                payload = run_stream_detection(
+                    model,
+                    source_url,
+                    selected_targets,
+                    source_kind=source_kind if source_kind in {"video", "stream"} else "stream",
+                )
+        except ValueError as error:
+            return jsonify({"error": str(error)}), 422
 
     payload["sourceKind"] = payload.get("media", {}).get("sourceKind") or source_kind
     payload["model"] = {
@@ -764,4 +1441,9 @@ def detect():
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=int(os.environ.get("PORT", "8000")), debug=False)
+    app.run(
+        host="127.0.0.1",
+        port=int(os.environ.get("PORT", "8000")),
+        debug=False,
+        threaded=True,
+    )

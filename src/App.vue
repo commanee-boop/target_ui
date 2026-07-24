@@ -89,7 +89,6 @@
               <span class="step-number step-source">1</span>
               <div class="step-head-copy">
                 <h2>Input Source</h2>
-                <p>{{ inputPanelDescription }}</p>
               </div>
             </div>
             <div class="source-mode-switch" role="tablist" aria-label="Input source type">
@@ -108,19 +107,18 @@
             <div v-if="sourceMode === 'stream'" class="stream-source-panel">
               <div class="input-section-label input-section-label-compact">
                 <span>{{ sourceListTitle }}</span>
-                <small>{{ sourceStatus }}</small>
+                <small v-if="queuedSourceCount">{{ sourceStatus }}</small>
               </div>
               <div class="source-list stream-source-list">
                 <div v-for="(slot, index) in sourceSlots" :key="slot.id" class="stream-source-row" :class="`is-${sourceSlotState(slot)}`">
                   <span class="stream-source-label">Stream {{ index + 1 }}</span>
-                  <input v-model="slot.url" type="url" :aria-label="`URL stream ${index + 1}`" :placeholder="streamPlaceholder" />
+                  <input v-model="slot.url" type="text" inputmode="url" :aria-label="`URL stream ${index + 1}`" :placeholder="streamPlaceholder" @input="clearStreamPreviewError(slot.id)" />
                   <span v-if="sourceSlotState(slot) !== 'empty'" class="source-row-state" :class="`is-${sourceSlotState(slot)}`">{{ sourceSlotStateLabel(slot) }}</span>
                   <button class="source-remove stream-remove-button" type="button" title="Remove source" aria-label="Remove source" :disabled="isSourceRemoveDisabled(slot)" @click="removeSourceSlot(slot)">×</button>
                 </div>
               </div>
               <div class="source-actions-row source-actions-row-clean">
                 <button class="secondary-small" type="button" :disabled="!canAddMoreSources" @click="addSourceSlot">{{ addSourceLabel }}</button>
-                <p class="source-actions-hint">{{ sourceHelpText }}</p>
               </div>
             </div>
             <div v-else-if="primarySourceSlot" class="single-upload-panel" :class="`is-${sourceSlotState(primarySourceSlot)}`">
@@ -129,7 +127,6 @@
                 <span class="single-upload-icon bi" :class="sourceMode === 'image' ? 'bi-image' : 'bi-film'" aria-hidden="true"></span>
                 <span class="single-upload-copy">
                   <strong>{{ singleUploadTitle }}</strong>
-                  <small>{{ singleUploadDescription }}</small>
                 </span>
                 <span class="single-upload-action">{{ singleUploadButtonLabel }}</span>
               </label>
@@ -144,7 +141,6 @@
                 <strong>หยุด</strong>
               </button>
             </div>
-            <p class="detect-actions-hint">{{ detectActionHint }}</p>
           </article>
 
           <article class="panel step-panel target-panel target-class-panel">
@@ -152,7 +148,6 @@
               <span class="target-head-icon bi bi-bullseye"></span>
               <span class="target-head-copy">
                 <strong>TARGET CLASSES</strong>
-                <small>{{ targetSelectionSummary }}</small>
               </span>
               <span class="target-head-chevron"></span>
             </button>
@@ -162,16 +157,14 @@
                 <span class="target-type-icon bi bi-grid-3x3-gap-fill" aria-hidden="true"></span>
                 <span class="target-class-copy">
                   <strong>SELECT ALL</strong>
-                  <small>เลือกหรือยกเลิกทั้งหมด</small>
                 </span>
                 <span class="target-class-action"></span>
               </button>
-              <button v-for="target in targetClassOptions" :key="target.id" class="target-class-row" :class="{ 'is-selected': isTargetSelected(target.id), 'is-muted': !isTargetSelected(target.id) }" type="button" :data-type="target.id" :title="target.detail" :aria-label="target.detail" @click="selectTarget(target.id)">
+              <button v-for="target in targetClassOptions" :key="target.id" class="target-class-row" :class="{ 'is-selected': isTargetSelected(target.id), 'is-muted': !isTargetSelected(target.id) }" type="button" :data-type="target.id" :aria-label="`เลือก ${target.id}`" @click="selectTarget(target.id)">
                 <span class="target-check" aria-hidden="true"></span>
                 <span class="target-type-icon bi" :class="targetTypeIconClass(target.id)" aria-hidden="true"></span>
                 <span class="target-class-copy">
                   <strong>{{ target.id }}</strong>
-                  <small>{{ target.detail }}</small>
                 </span>
                 <span class="target-color-swatch" :style="{ '--target-row-color': target.color }"></span>
               </button>
@@ -185,7 +178,6 @@
             <div class="panel-title compact preview-header">
               <div class="summary-heading">
                 <h2>ภาพแสดงผลขนาดใหญ่ (Live)</h2>
-                <p>โฟกัสภาพหลักให้ใหญ่ขึ้น พร้อมดูข้อมูลรองจากแถบด้านขวา</p>
               </div>
               <div class="preview-tools">
                 <button title="บันทึกภาพ" aria-label="บันทึกภาพ"><span class="icon bi bi-camera"></span></button>
@@ -194,47 +186,62 @@
             </div>
             <div ref="liveFrame" class="live-frame" :class="[`source-count-${previewSourceCount}`, { 'has-sources': activeSources.length, 'is-fullscreen': fullscreenActive }]">
               <div v-for="source in activeSources" :key="source.id" class="feed-tile" :data-live-title="`LIVE DETECTION (${source.cameraLabel})   •  LIVE`">
-                <video
-                  v-if="isSourcePlayable(source)"
-                  :ref="(element) => setVideoElement(source.id, element)"
-                  :src="source.src"
-                  autoplay
-                  muted
-                  loop
-                  playsinline
-                  preload="metadata"
-                  @loadedmetadata="handleVideoLoadedMetadata(source, $event)"
-                  @timeupdate="handleVideoTimeUpdate(source, $event)"
-                  @play="setVideoPlayingState(source.id, true)"
-                  @pause="setVideoPlayingState(source.id, false)"
-                ></video>
-                <img v-else :src="sourcePreviewImage(source)" :alt="source.label" />
+                <div class="feed-media-stage">
+                <img
+                  v-if="isProcessedVideoSource(source)"
+                    class="live-stream-preview processed-video-preview"
+                    :src="source.analysis.liveStreamUrl"
+                    :alt="`ผลตรวจจับแบบต่อเนื่องจาก ${source.label}`"
+                  />
+                <img
+                  v-else-if="isLiveStreamSource(source)"
+                    class="live-stream-preview"
+                    :src="streamPreviewUrl(source)"
+                    :alt="`ภาพสดจาก ${source.label}`"
+                    @error="markStreamPreviewUnavailable(source)"
+                  />
+                  <video
+                  v-else-if="isSourcePlayable(source)"
+                    :ref="(element) => setVideoElement(source.id, element)"
+                    :src="source.src"
+                    autoplay
+                    muted
+                    loop
+                    playsinline
+                    preload="metadata"
+                    @loadedmetadata="handleVideoLoadedMetadata(source, $event)"
+                    @timeupdate="handleVideoTimeUpdate(source, $event)"
+                    @play="setVideoPlayingState(source.id, true)"
+                    @pause="setVideoPlayingState(source.id, false)"
+                  ></video>
+                  <img v-else :src="sourcePreviewImage(source)" :alt="source.label" />
+                </div>
                 <div v-if="isSourceProcessing(source)" class="scan-line"></div>
                 <span v-if="isSourceProcessing(source)" class="live-dot">กำลังประมวลผล</span>
                 <span class="feed-name">{{ source.label }}</span>
-                <span v-if="source.analysis?.status === 'ready'" class="feed-analysis-note">{{ sourceDetectionNote(source) }}</span>
-                <span
-                  v-for="detection in currentSourceDetections(source)"
-                  :key="`${source.id}-${detection.targetKey}-${detection.box.join('-')}`"
-                  class="playback-detection-box"
-                  :class="detection.targetKey.toLowerCase()"
-                  :style="detectionBoxStyle(detection, source)"
-                >
-                  <strong>{{ detection.targetKey }}</strong>
-                  <small>{{ formatConfidence(detection.confidence) }}</small>
+                <span v-if="source.analysis?.status === 'error'" class="feed-error">
+                  <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+                  <span>ไม่สามารถรับภาพจาก stream</span>
+                  <small>{{ source.analysis.error }}</small>
                 </span>
+                <span v-if="source.analysis?.status === 'ready'" class="feed-analysis-note">{{ sourceDetectionNote(source) }}</span>
                 <span v-if="!source.analysis && sourceMode === 'stream'" class="box b1">MV</span>
                 <span v-if="!source.analysis && sourceMode === 'stream'" class="box b2">AMV</span>
                 <span v-if="!source.analysis && sourceMode === 'stream'" class="box b3">LMV</span>
-                <div v-if="isSourcePlayable(source)" class="feed-control-bar" aria-label="Camera playback controls">
-                  <button type="button" title="ย้อนกลับ 5 วินาที" aria-label="ย้อนกลับ 5 วินาที" @click="seekVideoSource(source.id, -5)"><span class="icon bi bi-skip-backward-fill"></span></button>
-                  <button type="button" title="Play" aria-label="Play" @click="playVideoSource(source.id)"><span class="icon bi bi-play-fill"></span></button>
-                  <button type="button" title="Pause" aria-label="Pause" class="pause-bars" @click="pauseVideoSource(source.id)"></button>
-                  <button type="button" title="Stop" aria-label="Stop" @click="stopVideoSource(source.id)"><span class="control-icon bi bi-stop-fill"></span></button>
-                  <button type="button" title="Restart" aria-label="Restart" @click="restartVideoSource(source.id)"><span class="control-icon bi bi-arrow-clockwise"></span></button>
+                <div v-if="isVideoSource(source) && source.analysis?.status !== 'stopped'" class="live-overlay-menu live-video-overlay-menu" aria-label="Video view tools">
+                  <button type="button" :title="fullscreenActive ? 'ออกจากโหมดเต็มหน้าจอ' : 'เต็มหน้าจอ'" :aria-label="fullscreenActive ? 'ออกจากโหมดเต็มหน้าจอ' : 'เต็มหน้าจอ'" @click.stop="toggleFullscreen">
+                    <span class="icon bi" :class="fullscreenActive ? 'bi-fullscreen-exit' : 'bi-fullscreen'" aria-hidden="true"></span>
+                  </button>
+                </div>
+                <div v-if="isVideoSource(source) && source.analysis?.status !== 'stopped'" class="feed-control-bar" aria-label="Video playback controls">
+                  <button type="button" title="ย้อนกลับ 5 วินาที" aria-label="ย้อนกลับ 5 วินาที" @click="seekSource(source, -5)"><span class="icon bi bi-skip-backward-fill"></span></button>
+                  <button type="button" title="Play" aria-label="Play" @click="playSource(source)"><span class="icon bi bi-play-fill"></span></button>
+                  <button type="button" title="Pause" aria-label="Pause" @click="pauseSource(source)"><span class="icon bi bi-pause-fill"></span></button>
+                  <button type="button" title="Stop" aria-label="Stop" @click="stopSource(source)"><span class="icon bi bi-stop-fill"></span></button>
+                  <button type="button" title="Restart" aria-label="Restart" @click="restartSource(source)"><span class="icon bi bi-arrow-clockwise"></span></button>
                   <div class="feed-progress"><span :style="{ width: `${sourceProgressPercent(source)}%` }"></span></div>
                   <time>{{ formatDuration(sourceCurrentTime(source)) }} / {{ sourceDurationLabel(source) }}</time>
-                  <button type="button" class="feed-speed" title="Playback speed" aria-label="Playback speed" @click="cycleVideoSpeed(source.id)">{{ sourcePlaybackRateLabel(source.id) }}</button>
+                  <button type="button" class="feed-speed" title="Playback speed" aria-label="Playback speed" @click="cycleSourceSpeed(source)">{{ sourcePlaybackRateLabel(source.id, source) }}</button>
                 </div>
               </div>
               <template v-if="!activeSources.length">
@@ -270,15 +277,18 @@
               <div class="panel-title compact">
                 <div class="summary-heading">
                   <h2>Mission Overview</h2>
-                  <p>คงธีมเดิม แต่ย่อข้อมูลหลักให้อยู่ในมุมมองเดียวมากขึ้น</p>
                 </div>
                 <span class="summary-badge" :class="{ 'is-live': running }">{{ running ? "Mission Live" : "Standby" }}</span>
               </div>
               <div class="overview-grid">
-                <article class="overview-card total-card">
-                  <span>Total Targets</span>
+                <article class="overview-card total-card" aria-label="Total Targets">
+                  <span class="overview-total-label">Total</span>
                   <strong id="totalCount">{{ totalCount }}</strong>
-                  <small>{{ sourceStatus }}</small>
+                  <small v-if="queuedSourceCount">{{ sourceStatus }}</small>
+                </article>
+                <article v-for="type in targetTypes" :key="`overview-${type}`" class="overview-card overview-type-card" :class="type.toLowerCase()" :aria-label="`${type}: ${metrics[type]}`">
+                  <i class="overview-type-icon bi" :class="targetTypeIconClass(type)" aria-hidden="true"></i>
+                  <strong>{{ metrics[type] }}</strong>
                 </article>
               </div>
               <div class="live-status-strip compact-strip" aria-label="สถานะการตรวจจับแบบย่อ">
@@ -311,7 +321,6 @@
               <div class="panel-title compact intel-panel-head">
                 <div class="summary-heading">
                   <h2>Operational Feed</h2>
-                  <p>สลับดู timeline, log และ snapshot โดยไม่ต้องเลื่อนลงยาว</p>
                 </div>
                 <div class="intel-tabs" role="tablist" aria-label="Operational feed tabs">
                   <button class="intel-tab" :class="{ 'is-active': activeIntelTab === 'logs' }" type="button" @click="activeIntelTab = 'logs'">Log</button>
@@ -406,7 +415,6 @@
         <section v-show="currentView === 'report'" class="report-page" aria-label="Saved detection reports">
           <div class="report-heading">
             <h1>รายงานบันทึกข้อมูล</h1>
-            <p>จัดการและค้นหาข้อมูลผลการตรวจจับที่บันทึกไว้ทั้งหมด</p>
           </div>
 
           <div class="report-stat-grid">
@@ -465,7 +473,7 @@
                 <span>การจัดการ</span>
               </div>
 
-              <button v-for="record in visibleReportRecords" :key="record.displayId" type="button" class="report-row" :class="{ 'is-selected': selectedReport.id === record.id }" @click="selectReport(record)">
+              <div v-for="record in visibleReportRecords" :key="record.displayId" class="report-row" :class="{ 'is-selected': selectedReport.id === record.id }" role="button" tabindex="0" @click="selectReport(record)" @keydown.enter="selectReport(record)" @keydown.space.prevent="selectReport(record)">
                 <label @click.stop><input type="checkbox" :checked="selectedReportIds.includes(record.id)" @change="toggleReportSelection(record)" /></label>
                 <span class="report-thumb">
                   <img :src="record.image" :alt="record.name" />
@@ -474,24 +482,23 @@
                 <span class="report-file-cell">
                   <strong>{{ record.name }}</strong>
                   <small>{{ record.source }}</small>
-                  <span class="report-tags"><em v-for="tag in record.tags" :key="`${record.id}-${tag}`"><span class="bi" :class="targetTypeIconClass(tag)" aria-hidden="true"></span>{{ tag }}</em></span>
+                  <span class="report-tags"><em v-for="tag in reportDetectedTags(record)" :key="`${record.id}-${tag}`"><span class="bi" :class="targetTypeIconClass(tag)" aria-hidden="true"></span>{{ tag }}</em></span>
                 </span>
                 <span class="file-type-badge" :class="record.ext.toLowerCase()">{{ record.ext }}</span>
-                <span class="report-tag-stack"><em v-for="tag in record.tags" :key="`${record.id}-type-${tag}`"><span class="bi" :class="targetTypeIconClass(tag)" aria-hidden="true"></span>{{ tag }}</em></span>
+                <span class="report-tag-stack"><em v-for="tag in reportDetectedTags(record)" :key="`${record.id}-type-${tag}`"><span class="bi" :class="targetTypeIconClass(tag)" aria-hidden="true"></span>{{ tag }}</em></span>
                 <span class="report-metric-strip">
-                  <span v-for="type in targetTypes" :key="`${record.id}-${type}`" :class="type.toLowerCase()">
+                  <span v-for="type in reportDetectedTags(record)" :key="`${record.id}-${type}`" :class="type.toLowerCase()">
                     <i class="bi" :class="targetTypeIconClass(type)" aria-hidden="true"></i><small>{{ type }}</small><strong>{{ record.metrics[type] }}</strong>
                   </span>
                 </span>
                 <span class="report-date-cell"><strong>{{ record.date }}</strong><small>{{ record.time }}</small></span>
                 <span class="report-size-cell">{{ record.size }}</span>
                 <span class="report-action-buttons">
-                  <span class="icon-button view" title="ดูข้อมูล" aria-label="ดูข้อมูล" @click.stop="viewReport(record)"><span class="bi bi-eye"></span></span>
-                  <span class="icon-button export-word" title="Export Word" aria-label="Export Word" @click.stop="exportReport(record, 'word')"><span class="bi bi-file-earmark-word"></span></span>
-                  <span class="icon-button export-pdf" title="Export PDF" aria-label="Export PDF" @click.stop="exportReport(record, 'pdf')"><span class="bi bi-file-earmark-pdf"></span></span>
-                  <span class="icon-button delete" title="ลบ" aria-label="ลบ" @click.stop="deleteReport(record)"><span class="bi bi-trash3"></span></span>
+                  <button type="button" class="icon-button export-word" title="Export Word" aria-label="Export Word" @click.stop="exportReport(record, 'word')"><span class="bi bi-file-earmark-word"></span></button>
+                  <button type="button" class="icon-button export-pdf" title="Export PDF" aria-label="Export PDF" @click.stop="exportReport(record, 'pdf')"><span class="bi bi-file-earmark-pdf"></span></button>
+                  <button type="button" class="icon-button delete" title="ลบ" aria-label="ลบ" @click.stop="deleteReport(record)"><span class="bi bi-trash3"></span></button>
                 </span>
-              </button>
+              </div>
 
               <div class="report-pagination">
                 <span>แสดง {{ reportPageStart }} - {{ reportPageEnd }} จาก {{ filteredReportRecords.length }} รายการ</span>
@@ -508,13 +515,10 @@
             </article>
 
             <aside class="report-detail-stack">
-              <article class="panel report-detail-panel">
+              <article ref="reportDetailPanel" class="panel report-detail-panel">
                 <h2>ตัวอย่างและรายละเอียด</h2>
                 <div class="report-detail-preview">
                   <img :src="selectedReport.image" :alt="selectedReport.name" />
-                  <span class="box report-b1">MV</span>
-                  <span class="box report-b2">AMV</span>
-                  <span class="box report-b3">AMV</span>
                   <button type="button" title="Fullscreen" aria-label="Fullscreen"><span class="icon bi bi-fullscreen"></span></button>
                   <time>00:00:45 / {{ selectedReport.duration }}</time>
                 </div>
@@ -529,8 +533,8 @@
                   <div><dt>ขนาดไฟล์</dt><dd>{{ selectedReport.size }}</dd></div>
                   <div><dt>ความละเอียด</dt><dd>{{ selectedReport.resolution }}</dd></div>
                   <div><dt>FPS</dt><dd>{{ selectedReport.fps }}</dd></div>
-                  <div><dt>โมเดล</dt><dd>{{ selectedReport.model || 'RM-IMG' }}</dd></div>
-                  <div><dt>ไฟล์โมเดล</dt><dd>{{ selectedReport.modelFile || 'rm-img.pt' }}</dd></div>
+                  <div><dt>โมเดล</dt><dd>{{ selectedReport.model || 'EXP-7' }}</dd></div>
+                  <div><dt>ไฟล์โมเดล</dt><dd>{{ selectedReport.modelFile || 'exp-7.pt' }}</dd></div>
                   <div><dt>ผู้บันทึก</dt><dd>{{ selectedReport.recorder }}</dd></div>
                   <div><dt>หมายเหตุ</dt><dd>-</dd></div>
                 </dl>
@@ -615,10 +619,6 @@
           </div>
           <div class="snapshot-modal-image">
             <img :src="selectedSnapshot.image || selectedSnapshot.source.analysis?.previewImage || fallbackPreviewImage" :alt="`${selectedSnapshot.type} detection enlarged`" />
-            <span class="snapshot-detection-box" :class="selectedSnapshot.typeClass">
-              <strong>{{ selectedSnapshot.type }}</strong>
-              <small>{{ snapshotMetaText(selectedSnapshot) }}</small>
-            </span>
           </div>
         </div>
         </div>
@@ -631,6 +631,10 @@ const TARGET_TYPES = ["MV", "AMV", "LMV", "AFV", "CV", "MCV"];
 const DEFAULT_TARGET_SELECTION = [...TARGET_TYPES];
 const FALLBACK_PREVIEW_IMAGE = "/assets/surveillance-road.png";
 const VIDEO_PLAYBACK_RATES = [1, 1.5, 2];
+const DEFAULT_MODEL_ID = "exp-7";
+const DEFAULT_MODEL_FILE_NAME = "exp-7.pt";
+const LIVE_VIDEO_PREVIEW_FPS = 8;
+const LIVE_VIDEO_SNAPSHOT_FRAME_INTERVAL = LIVE_VIDEO_PREVIEW_FPS * 4;
 
 export default {
   data() {
@@ -653,7 +657,7 @@ export default {
       timelineFilterTargets: [...DEFAULT_TARGET_SELECTION],
       activeIntelTab: "logs",
       targetPanelCollapsed: false,
-      selectedModel: "rm-img",
+      selectedModel: DEFAULT_MODEL_ID,
       selectedReportId: 1,
       reportPageSize: 10,
       reportPage: 1,
@@ -673,8 +677,11 @@ export default {
         status: "checking",
         message: "Checking backend",
         models: [],
+        features: {
+          videoSessions: false
+        },
         inference: {
-          conf: 0.7,
+          conf: 0.25,
           iou: 0.7,
           imgsz: 1280
         }
@@ -694,6 +701,9 @@ export default {
       },
       videoElements: {},
       playbackStates: {},
+      streamPreviewErrors: {},
+      videoSessionPollers: {},
+      videoSessionPollBusy: {},
       analysisLoopBusy: false,
       logIndex: 0,
       timer: null,
@@ -708,20 +718,19 @@ export default {
       },
       logs: [],
       targetClassOptions: [
-        { id: "MV", detail: "(Military Vehicles)", color: "#6fe58e" },
-        { id: "AMV", detail: "(Armored Military Vehicle)", color: "#2ed36f" },
-        { id: "LMV", detail: "(Light Military Vehicle)", color: "#2f84ff" },
-        { id: "AFV", detail: "(Armored Fighting Vehicle)", color: "#f3ad2f" },
-        { id: "CV", detail: "(Combat Vehicle)", color: "#8c4be8" },
-        { id: "MCV", detail: "(Military Cargo Vehicle)", color: "#e5812e" }
+        { id: "MV", color: "#6fe58e" },
+        { id: "AMV", color: "#2ed36f" },
+        { id: "LMV", color: "#2f84ff" },
+        { id: "AFV", color: "#f3ad2f" },
+        { id: "CV", color: "#8c4be8" },
+        { id: "MCV", color: "#e5812e" }
       ],
       detectionModels: [
         {
-          id: "rm-img",
-          name: "RM-IMG",
-          detail: "Bundled Ultralytics detection model from rm-img.pt",
-          fileName: "rm-img.pt",
-          publicPath: "/models/rm-img.pt",
+          id: DEFAULT_MODEL_ID,
+          name: "EXP-7",
+          fileName: DEFAULT_MODEL_FILE_NAME,
+          publicPath: `/models/${DEFAULT_MODEL_FILE_NAME}`,
           availability: "checking",
           sizeBytes: 0
         }
@@ -870,9 +879,6 @@ export default {
       if (this.sourceMode === "video") return "video/*";
       return "video/*,image/*";
     },
-    inputPanelDescription() {
-      return "เลือกประเภทข้อมูล แล้วค่อยเริ่ม Detect";
-    },
     streamPlaceholder() {
       return "วาง rtsp:// หรือ https:// ของสตรีม";
     },
@@ -881,19 +887,9 @@ export default {
       if (this.sourceMode === "video") return "วิดีโอที่เลือก";
       return "รายการ Live Stream";
     },
-    sourceSlotUploadHint() {
-      if (this.sourceMode === "image") {
-        return "เลือกรูปภาพแล้วรอกด Detect";
-      }
-      return "เลือกวิดีโอแล้วรอกด Detect";
-    },
     filePickerLabel() {
       if (this.sourceMode === "image") return "เลือกรูปภาพ";
       return "เลือกวิดีโอ";
-    },
-    filePickerHint() {
-      if (this.sourceMode === "image") return "อัปโหลดได้ทีละ 1 รูป";
-      return "อัปโหลดได้ทีละ 1 วิดีโอ";
     },
     primarySourceSlot() {
       return this.sourceSlots[0] || null;
@@ -901,12 +897,6 @@ export default {
     singleUploadTitle() {
       if (this.primarySourceSlot?.fileName) return this.primarySourceSlot.fileName;
       return this.filePickerLabel;
-    },
-    singleUploadDescription() {
-      if (this.primarySourceSlot?.fileName) {
-        return this.sourceFileMetaText(this.primarySourceSlot);
-      }
-      return this.filePickerHint;
     },
     singleUploadButtonLabel() {
       if (this.primarySourceSlot?.fileName) return "เปลี่ยนไฟล์";
@@ -949,21 +939,6 @@ export default {
       }
       return `${this.queuedSourceCount} source พร้อมรอ Detect`;
     },
-    sourceQueueDescription() {
-      if (!this.queuedSourceCount) {
-        if (this.sourceMode === "image") {
-          return "อัปโหลดรูปภาพได้สูงสุด 4 รายการในรอบเดียว";
-        }
-        if (this.sourceMode === "video") {
-          return "อัปโหลดวิดีโอได้สูงสุด 4 รายการในรอบเดียว";
-        }
-        return "เพิ่ม URL, RTSP หรือ video link เพื่อเตรียมคิวตรวจจับ";
-      }
-      if (this.running) {
-        return "ระบบกำลังใช้โมเดลกับ source ที่อยู่ในคิวนี้";
-      }
-      return "source ที่เลือกจะยังไม่เริ่มทำงานจนกว่าจะกดปุ่ม Detect";
-    },
     sourceStatus() {
       if (!this.queuedSourceCount) {
         if (this.sourceMode === "image") return "ยังไม่มีรูปภาพที่เลือก";
@@ -976,12 +951,6 @@ export default {
       if (this.sourceMode === "image") return `พร้อม Detect ${this.queuedSourceCount} รูป`;
       if (this.sourceMode === "video") return `พร้อม Detect ${this.queuedSourceCount} วิดีโอ`;
       return `พร้อม Detect ${this.queuedSourceCount} stream`;
-    },
-    sourceHelpText() {
-      if (this.running) return "ระบบกำลังใช้โมเดลตรวจจับ";
-      if (this.sourceMode === "image") return "โหมดนี้อัปโหลดได้ทีละ 1 รูป";
-      if (this.sourceMode === "video") return "โหมดนี้อัปโหลดได้ทีละ 1 วิดีโอ";
-      return "เพิ่มสตรีมได้สูงสุด 4 รายการ";
     },
     sourceStatusClass() {
       if (this.running) return "is-processing";
@@ -1066,9 +1035,6 @@ export default {
     selectedModelName() {
       return this.selectedModelMeta?.name || "Select model";
     },
-    selectedModelDetail() {
-      return this.selectedModelMeta?.detail || "Bundled detection model";
-    },
     selectedModelStatusText() {
       if (this.selectedModelMeta?.availability === "ready") return "Model ready";
       if (this.selectedModelMeta?.availability === "missing") return "Model missing";
@@ -1100,21 +1066,21 @@ export default {
     },
     modelHintText() {
       if (this.selectedModelMeta?.availability === "missing") {
-        return "ยังไม่พบ /public/models/rm-img.pt ในโปรเจ็กต์";
+        return `ยังไม่พบ /public/models/${DEFAULT_MODEL_FILE_NAME} ในโปรเจ็กต์`;
       }
       if (this.inferenceServer.status !== "ready") {
         return "เปิด backend ด้วย `npm run backend` ก่อน แล้วจึงกด Start Detection";
       }
       if (this.sourceMode === "image") {
         const { conf, iou, imgsz } = this.inferenceServer.inference || {};
-        return `โหมด Upload Image จะส่งภาพเข้า rm-img.pt เพื่อรัน detection จริง (conf ${conf}, iou ${iou}, imgsz ${imgsz})`;
+        return `โหมด Upload Image จะส่งภาพเข้า ${this.selectedModelMeta?.fileName || DEFAULT_MODEL_FILE_NAME} เพื่อรัน detection จริง (conf ${conf}, iou ${iou}, imgsz ${imgsz})`;
       }
       if (this.sourceMode === "video") {
         const { conf, iou, imgsz } = this.inferenceServer.inference || {};
-        return `โหมด Upload Video จะส่งวิดีโอเข้า rm-img.pt เพื่อรัน detection จริง (conf ${conf}, iou ${iou}, imgsz ${imgsz})`;
+        return `โหมด Upload Video จะส่งวิดีโอเข้า ${this.selectedModelMeta?.fileName || DEFAULT_MODEL_FILE_NAME} เพื่อรัน detection จริง (conf ${conf}, iou ${iou}, imgsz ${imgsz})`;
       }
       const { conf, iou, imgsz } = this.inferenceServer.inference || {};
-      return `โหมด URL / STREAM จะส่งลิงก์เข้า backend เพื่อรัน detection จริงจากภาพหรือสตรีมที่เข้าถึงได้ (conf ${conf}, iou ${iou}, imgsz ${imgsz})`;
+      return `โหมด URL / STREAM จะส่งลิงก์เข้า ${this.selectedModelMeta?.fileName || DEFAULT_MODEL_FILE_NAME} เพื่อรัน detection จริงจากภาพหรือสตรีมที่เข้าถึงได้ (conf ${conf}, iou ${iou}, imgsz ${imgsz})`;
     },
     modelReady() {
       return this.selectedModelMeta?.availability === "ready";
@@ -1123,31 +1089,24 @@ export default {
       return this.inferenceServer.status === "ready";
     },
     canRunDetection() {
-      return Boolean(this.queuedSourceCount && this.selectedTargets.length && this.selectedModel && this.modelReady && this.backendReady);
+      const videoBackendReady = this.sourceMode !== "video" || this.inferenceServer.features?.videoSessions;
+      return Boolean(this.queuedSourceCount && this.selectedTargets.length && this.selectedModel && this.modelReady && this.backendReady && videoBackendReady);
     },
     runDisabledReason() {
       if (!this.queuedSourceCount) return "กรุณาเลือกข้อมูลก่อน";
       if (!this.selectedTargets.length) return "กรุณาเลือกเป้าหมาย";
       if (!this.selectedModel) return "Detection system is not ready";
-      if (!this.modelReady) return "rm-img.pt is not ready";
+      if (!this.modelReady) return `${DEFAULT_MODEL_FILE_NAME} is not ready`;
       if (!this.backendReady) return "Inference backend is not ready";
-      return "พร้อมเริ่ม Detect";
-    },
-    detectActionHint() {
-      if (this.running) {
-        return "กำลังตรวจจับจากรายการนี้";
+      if (this.sourceMode === "video" && !this.inferenceServer.features?.videoSessions) {
+        return "Backend is outdated. Restart npm run backend to enable video detection";
       }
-      return "ยังไม่เริ่มทำงานจนกว่าจะกด Detect";
+      return "พร้อมเริ่ม Detect";
     },
     addSourceLabel() {
       if (this.sourceMode === "image") return "เพิ่มรูป";
       if (this.sourceMode === "video") return "เพิ่มวิดีโอ";
       return "เพิ่มสตรีม";
-    },
-    targetSelectionSummary() {
-      if (!this.selectedTargets.length) return "ยังไม่เลือกเป้าหมาย";
-      if (this.allTargetsSelected) return `เลือกครบ ${this.targetClassOptions.length} ประเภท`;
-      return `เลือก ${this.selectedTargets.length} จาก ${this.targetClassOptions.length} ประเภท`;
     },
     targetTypes() {
       return TARGET_TYPES;
@@ -1187,10 +1146,11 @@ export default {
       const typeMode = this.reportTypeMode === "all" ? this.reportFilters.fileType : this.reportTypeMode;
 
       return this.reportRecords.filter((record) => {
-        const text = `${record.name} ${record.source} ${record.ext} ${record.kind} ${record.tags.join(" ")}`.toLowerCase();
+        const detectedTags = this.reportDetectedTags(record);
+        const text = `${record.name} ${record.source} ${record.ext} ${record.kind} ${detectedTags.join(" ")}`.toLowerCase();
         const matchesQuery = !query || text.includes(query);
         const matchesFile = typeMode === "all" || record.kind === typeMode;
-        const matchesTarget = this.reportFilters.targetType === "all" || record.tags.includes(this.reportFilters.targetType);
+        const matchesTarget = this.reportFilters.targetType === "all" || detectedTags.includes(this.reportFilters.targetType);
         const isUpload = /upload|อัปโหลด/i.test(record.source);
         const sourceType = isUpload ? "upload" : "stream";
         const matchesSource = this.reportFilters.sourceType === "all" || this.reportFilters.sourceType === sourceType;
@@ -1329,6 +1289,7 @@ export default {
     this.updateClock();
     this.resolveBundledModels();
     this.checkInferenceServer();
+    this.loadReports();
     this.clockTimer = window.setInterval(this.updateClock, 1000);
     document.addEventListener("fullscreenchange", this.handleFullscreenChange);
     document.body.classList.toggle("theme-light", this.theme === "light");
@@ -1338,6 +1299,7 @@ export default {
   beforeUnmount() {
     window.clearInterval(this.timer);
     window.clearInterval(this.clockTimer);
+    this.stopAllLiveVideoSessions();
     document.removeEventListener("fullscreenchange", this.handleFullscreenChange);
     Object.values(this.videoElements).forEach((element) => {
       try {
@@ -1466,7 +1428,7 @@ export default {
 
       this.detectionModels = resolvedModels;
       if (!resolvedModels.some((model) => model.id === this.selectedModel && model.availability === "ready")) {
-        this.selectedModel = resolvedModels[0]?.id || "rm-img";
+        this.selectedModel = resolvedModels[0]?.id || DEFAULT_MODEL_ID;
       }
     },
     async checkInferenceServer() {
@@ -1487,8 +1449,11 @@ export default {
           status: payload.status === "ready" ? "ready" : "offline",
           message: payload.status === "ready" ? "Backend ready" : "Model missing on backend",
           models: payload.models || [],
+          features: {
+            videoSessions: Boolean(payload.features?.videoSessions)
+          },
           inference: payload.inference || {
-            conf: 0.7,
+            conf: 0.25,
             iou: 0.7,
             imgsz: 1280
           }
@@ -1498,8 +1463,11 @@ export default {
           status: "offline",
           message: "Backend offline",
           models: [],
+          features: {
+            videoSessions: false
+          },
           inference: {
-            conf: 0.7,
+            conf: 0.25,
             iou: 0.7,
             imgsz: 1280
           }
@@ -1668,7 +1636,7 @@ export default {
       };
     },
     sourceCurrentTime(source) {
-      return Number(this.playbackStates[source?.id]?.currentTime || 0);
+      return Number(this.playbackStates[source?.id]?.currentTime ?? source?.analysis?.playback?.currentTime ?? 0);
     },
     sourceDurationSeconds(source) {
       const playbackDuration = Number(this.playbackStates[source?.id]?.duration || 0);
@@ -1687,9 +1655,55 @@ export default {
       if (!durationSec) return 0;
       return Math.min(100, Math.max(0, (this.sourceCurrentTime(source) / durationSec) * 100));
     },
-    sourcePlaybackRateLabel(sourceId) {
-      const playbackRate = Number(this.playbackStates[sourceId]?.rate || 1);
+    sourcePlaybackRateLabel(sourceId, source = null) {
+      const playbackRate = Number(this.playbackStates[sourceId]?.rate ?? source?.analysis?.playback?.rate ?? 1);
       return `${playbackRate.toFixed(1)}x`;
+    },
+    isBackendVideoSource(source) {
+      return Boolean(source?.analysis?.sessionId);
+    },
+    async sendLiveVideoControl(source, action, value = null) {
+      if (!this.isBackendVideoSource(source)) return;
+      try {
+        const response = await fetch(`${this.getInferenceApiBase()}/api/video-sessions/${source.analysis.sessionId}/controls`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action, value })
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || "Video control unavailable");
+        const slot = this.sourceSlots.find((item) => item.id === source.id);
+        if (slot?.analysis) slot.analysis = { ...slot.analysis, ...payload };
+        this.updatePlaybackState(source.id, {
+          currentTime: Number(payload.playback?.currentTime || 0),
+          rate: Number(payload.playback?.rate || 1),
+          playing: !payload.playback?.paused
+        });
+      } catch (error) {
+        this.appendLog(`${source.cameraLabel}: ไม่สามารถควบคุมวิดีโอได้ (${error.message || "backend unavailable"})`);
+      }
+    },
+    playSource(source) {
+      return this.isBackendVideoSource(source) ? this.sendLiveVideoControl(source, "play") : this.playVideoSource(source.id);
+    },
+    pauseSource(source) {
+      return this.isBackendVideoSource(source) ? this.sendLiveVideoControl(source, "pause") : this.pauseVideoSource(source.id);
+    },
+    stopSource(source) {
+      return this.isBackendVideoSource(source) ? this.sendLiveVideoControl(source, "stop") : this.stopVideoSource(source.id);
+    },
+    restartSource(source) {
+      return this.isBackendVideoSource(source) ? this.sendLiveVideoControl(source, "restart") : this.restartVideoSource(source.id);
+    },
+    seekSource(source, deltaSeconds) {
+      if (!this.isBackendVideoSource(source)) return this.seekVideoSource(source.id, deltaSeconds);
+      return this.sendLiveVideoControl(source, "seek", this.sourceCurrentTime(source) + deltaSeconds);
+    },
+    cycleSourceSpeed(source) {
+      if (!this.isBackendVideoSource(source)) return this.cycleVideoSpeed(source.id);
+      const currentRate = Number(source.analysis?.playback?.rate || 1);
+      const currentIndex = VIDEO_PLAYBACK_RATES.findIndex((rate) => Math.abs(rate - currentRate) < 0.01);
+      return this.sendLiveVideoControl(source, "rate", VIDEO_PLAYBACK_RATES[(currentIndex + 1) % VIDEO_PLAYBACK_RATES.length]);
     },
     handleVideoLoadedMetadata(source, event) {
       const videoElement = event.target;
@@ -1701,6 +1715,11 @@ export default {
       videoElement.muted = true;
       videoElement.loop = true;
       videoElement.playsInline = true;
+      if (source.analysis?.status === "processing") {
+        videoElement.pause();
+        this.setVideoPlayingState(source.id, false);
+        return;
+      }
       this.playVideoSource(source.id);
     },
     handleVideoTimeUpdate(source, event) {
@@ -1764,6 +1783,23 @@ export default {
       videoElement.playbackRate = nextRate;
       this.updatePlaybackState(sourceId, { rate: nextRate });
     },
+    captureVideoFrame(source) {
+      const videoElement = this.videoElements[source?.id];
+      if (!videoElement || !videoElement.videoWidth || !videoElement.videoHeight) return;
+
+      const canvas = document.createElement("canvas");
+      canvas.width = videoElement.videoWidth;
+      canvas.height = videoElement.videoHeight;
+      const context = canvas.getContext("2d");
+      if (!context) return;
+
+      context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+      const link = document.createElement("a");
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      link.href = canvas.toDataURL("image/png");
+      link.download = `detection-${source.cameraLabel.toLowerCase().replace(/\s+/g, "-")}-${timestamp}.png`;
+      link.click();
+    },
     sourceTimelineEvents(source) {
       const rawEvents = source?.analysis?.timelineEvents || [];
       return rawEvents
@@ -1807,6 +1843,12 @@ export default {
       }
       return (this.currentSourceEvent(source)?.detections || []).slice(0, 12);
     },
+    snapshotDetections(snapshot, source) {
+      const detections = Array.isArray(snapshot?.detections) && snapshot.detections.length
+        ? snapshot.detections
+        : (source?.analysis?.detections || []);
+      return detections.slice(0, 12);
+    },
     sourceDetectionNote(source) {
       const activeEvent = this.currentSourceEvent(source);
       if (!activeEvent) {
@@ -1837,8 +1879,40 @@ export default {
     isVideoSource(source) {
       return source?.mediaKind === "video";
     },
+    isProcessedVideoSource(source) {
+      return this.sourceMode === "video" && Boolean(source?.analysis?.liveStreamUrl);
+    },
     isSourcePlayable(source) {
-      return this.sourceMode === "video" && this.isVideoSource(source);
+      return this.sourceMode === "video"
+        && this.isVideoSource(source)
+        && !this.isProcessedVideoSource(source)
+        && source?.analysis?.status !== "stopped";
+    },
+    isLiveStreamSource(source) {
+      return this.sourceMode === "stream"
+        && Boolean(source?.src)
+        && !this.streamPreviewErrors[source.id];
+    },
+    streamPreviewUrl(source) {
+      const params = new URLSearchParams({
+        sourceUrl: source.src,
+        modelId: this.selectedModelMeta?.id || DEFAULT_MODEL_ID,
+        modelFileName: this.selectedModelMeta?.fileName || DEFAULT_MODEL_FILE_NAME
+      });
+      return `${this.getInferenceApiBase()}/api/stream?${params.toString()}`;
+    },
+    clearStreamPreviewError(sourceId) {
+      if (!(sourceId in this.streamPreviewErrors)) return;
+      const { [sourceId]: _cleared, ...remainingErrors } = this.streamPreviewErrors;
+      this.streamPreviewErrors = remainingErrors;
+    },
+    markStreamPreviewUnavailable(source) {
+      if (this.streamPreviewErrors[source.id]) return;
+      this.streamPreviewErrors = {
+        ...this.streamPreviewErrors,
+        [source.id]: true
+      };
+      this.appendLog(`${source.cameraLabel}: ไม่สามารถเปิดภาพสดจาก stream ได้`);
     },
     isSourceProcessing(source) {
       return source?.analysis?.status === "processing";
@@ -1913,6 +1987,7 @@ export default {
     setView(view) {
       this.currentView = view;
       document.body.classList.toggle("report-view", view === "report");
+      if (view === "report") this.loadReports();
       this.$nextTick(this.syncViewLayout);
     },
     syncViewLayout() {
@@ -2052,6 +2127,7 @@ export default {
       return this.sourceSlots.length === 1 && !this.slotHasSource(slot) && !slot?.analysis;
     },
     releaseSourceSlotResources(slot) {
+      this.stopLiveVideoSession(slot.id);
       if (slot.fileUrl) URL.revokeObjectURL(slot.fileUrl);
       if (this.videoElements[slot.id]) {
         try {
@@ -2087,6 +2163,7 @@ export default {
       this.recalculateMetricsFromAnalysis();
     },
     resetSourceSlots() {
+      this.stopAllLiveVideoSessions();
       this.sourceSlots.forEach((slot) => {
         if (slot.fileUrl) URL.revokeObjectURL(slot.fileUrl);
       });
@@ -2136,6 +2213,11 @@ export default {
     async analyzeFileSource(slot) {
       if (!slot.file) return;
 
+      if (this.sourceMode === "video") {
+        await this.startLiveVideoSession(slot);
+        return;
+      }
+
       slot.analysis = {
         status: "processing",
         previewImage: slot.fileUrl,
@@ -2147,16 +2229,27 @@ export default {
       formData.append("source", slot.file, slot.file.name);
       formData.append("sourceKind", this.sourceMode === "video" ? "video" : "image");
       formData.append("selectedTargets", this.selectedTargets.join(","));
-      formData.append("modelId", this.selectedModelMeta?.id || "rm-img");
-      formData.append("modelFileName", this.selectedModelMeta?.fileName || "rm-img.pt");
+      formData.append("modelId", this.selectedModelMeta?.id || DEFAULT_MODEL_ID);
+      formData.append("modelFileName", this.selectedModelMeta?.fileName || DEFAULT_MODEL_FILE_NAME);
 
-      const response = await fetch(`${this.getInferenceApiBase()}/api/detect`, {
-        method: "POST",
-        body: formData
-      });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(payload.error || "Detection request failed");
+      let payload;
+      try {
+        const response = await fetch(`${this.getInferenceApiBase()}/api/detect`, {
+          method: "POST",
+          body: formData
+        });
+        payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(payload.error || "Detection request failed");
+        }
+      } catch (error) {
+        slot.analysis = {
+          ...(slot.analysis || {}),
+          status: "error",
+          error: error.message || "ไม่สามารถอ่านไฟล์วิดีโอได้"
+        };
+        this.recalculateMetricsFromAnalysis();
+        throw error;
       }
 
       slot.analysis = {
@@ -2172,9 +2265,189 @@ export default {
       const timelineCount = Array.isArray(payload.timelineEvents) ? payload.timelineEvents.length : 0;
       const snapshotCount = Array.isArray(payload.snapshots) ? payload.snapshots.length : 0;
       this.appendLog(
-        `${sourceLabel}: ใช้โมเดล <strong>${payload.model?.fileName || "rm-img.pt"}</strong> ตรวจจับได้ <strong>${payload.total}</strong> เป้าหมาย${summaryText ? ` (${summaryText})` : ""}${timelineCount ? ` · timeline ${timelineCount} จุด` : ""}${snapshotCount ? ` · snapshots ${snapshotCount}` : ""}`
+        `${sourceLabel}: ใช้โมเดล <strong>${payload.model?.fileName || DEFAULT_MODEL_FILE_NAME}</strong> ตรวจจับได้ <strong>${payload.total}</strong> เป้าหมาย${summaryText ? ` (${summaryText})` : ""}${timelineCount ? ` · timeline ${timelineCount} จุด` : ""}${snapshotCount ? ` · snapshots ${snapshotCount}` : ""}`
       );
       this.appendFilteredDetectionHint(payload, sourceLabel);
+    },
+    async startLiveVideoSession(slot) {
+      await this.stopLiveVideoSession(slot.id);
+      slot.analysis = {
+        status: "processing",
+        previewImage: slot.fileUrl,
+        metrics: this.emptyMetrics(),
+        total: 0
+      };
+
+      const formData = new FormData();
+      formData.append("source", slot.file, slot.file.name);
+      formData.append("selectedTargets", this.selectedTargets.join(","));
+      formData.append("modelId", this.selectedModelMeta?.id || DEFAULT_MODEL_ID);
+      formData.append("modelFileName", this.selectedModelMeta?.fileName || DEFAULT_MODEL_FILE_NAME);
+
+      let payload;
+      try {
+        const response = await fetch(`${this.getInferenceApiBase()}/api/video-sessions`, {
+          method: "POST",
+          body: formData
+        });
+        payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          if (response.status === 404) {
+            throw new Error("Backend เวอร์ชันเก่า: กรุณาหยุดแล้วรัน npm run backend ใหม่ เพื่อเปิดใช้ Live Video Detection");
+          }
+          throw new Error(payload.error || "Unable to start live video detection");
+        }
+      } catch (error) {
+        slot.analysis = {
+          ...(slot.analysis || {}),
+          status: "error",
+          error: error.message || "ไม่สามารถเริ่มเล่นวิดีโอพร้อมตรวจจับได้"
+        };
+        this.recalculateMetricsFromAnalysis();
+        throw error;
+      }
+
+      slot.analysis = {
+        ...payload,
+        status: "ready",
+        liveStreamUrl: `${this.getInferenceApiBase()}${payload.streamPath}`,
+        previewImage: slot.fileUrl
+      };
+      this.recalculateMetricsFromAnalysis();
+      this.startLiveVideoSessionPolling(slot.id, payload.sessionId);
+      const sourceLabel = this.monitoringSources.find((source) => source.id === slot.id)?.cameraLabel || "CAM";
+      this.appendLog(`${sourceLabel}: เริ่มแสดงผลวิดีโอพร้อมผลตรวจจับแบบต่อเนื่อง`);
+    },
+    startLiveVideoSessionPolling(slotId, sessionId) {
+      this.stopLiveVideoSessionPolling(slotId);
+      const poller = window.setInterval(async () => {
+        const slot = this.sourceSlots.find((item) => item.id === slotId);
+        if (!this.running || !slot?.analysis?.sessionId) {
+          this.stopLiveVideoSessionPolling(slotId);
+          return;
+        }
+        if (this.videoSessionPollBusy[slotId]) return;
+        this.videoSessionPollBusy = { ...this.videoSessionPollBusy, [slotId]: true };
+        try {
+          const response = await fetch(`${this.getInferenceApiBase()}/api/video-sessions/${sessionId}`, { cache: "no-store" });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(payload.error || "Video session disconnected");
+          const liveEventFallback = this.createLiveVideoEventFallback(slot, payload);
+          slot.analysis = {
+            ...slot.analysis,
+            ...payload,
+            ...liveEventFallback,
+            status: payload.status === "error" ? "error" : "ready"
+          };
+          if (payload.playback) {
+            this.updatePlaybackState(slotId, {
+              currentTime: Number(payload.playback.currentTime || 0),
+              rate: Number(payload.playback.rate || 1),
+              playing: !payload.playback.paused
+            });
+          }
+          this.recalculateMetricsFromAnalysis();
+        } catch (error) {
+          slot.analysis = {
+            ...slot.analysis,
+            status: "error",
+            error: error.message || "Video session disconnected"
+          };
+          this.stopLiveVideoSessionPolling(slotId);
+        } finally {
+          if (slotId in this.videoSessionPollBusy) {
+            const { [slotId]: _finished, ...remainingBusyPolls } = this.videoSessionPollBusy;
+            this.videoSessionPollBusy = remainingBusyPolls;
+          }
+        }
+      }, 250);
+      this.videoSessionPollers = { ...this.videoSessionPollers, [slotId]: poller };
+    },
+    createLiveVideoEventFallback(slot, payload) {
+      // New backends provide event arrays directly.  This fallback keeps the
+      // Log, Timeline, and Snapshot panels useful while a session is streaming
+      // against a backend that only returns live metrics and detections.
+      if (Array.isArray(payload.timelineEvents) && payload.timelineEvents.length) return {};
+      if (!Number(payload.total)) return {};
+
+      const previous = slot.analysis || {};
+      const frame = Number(payload.framesProcessed || 0);
+      if (!frame || frame === Number(previous.lastLiveEventFrame || 0)) return {};
+
+      const durationSec = Number(payload.media?.durationSec || previous.media?.durationSec || 0);
+      const elapsedSec = frame / LIVE_VIDEO_PREVIEW_FPS;
+      const timeSec = durationSec > 0 ? elapsedSec % durationSec : elapsedSec;
+      const detections = Array.isArray(payload.detections) ? payload.detections : [];
+      const primaryDetection = detections[0] || {};
+      const primaryTarget = primaryDetection.targetKey
+        || Object.entries(payload.metrics || {}).find(([, count]) => Number(count) > 0)?.[0]
+        || "MV";
+      const event = {
+        time: this.formatDuration(timeSec),
+        timeSec: Number(timeSec.toFixed(2)),
+        left: durationSec > 0 ? Number(((timeSec / durationSec) * 100).toFixed(2)) : 0,
+        type: primaryTarget,
+        targets: detections.length
+          ? [...new Set(detections.map((detection) => detection.targetKey).filter(Boolean))]
+          : [primaryTarget],
+        confidence: Number(primaryDetection.confidence || 0),
+        summaryText: this.metricsToSummaryText(payload.metrics || {}),
+        total: Number(payload.total || 0),
+        metrics: payload.metrics || this.emptyMetrics(),
+        detections: detections.slice(0, 12),
+        image: payload.previewImage || previous.previewImage || this.fallbackPreviewImage
+      };
+      const timelineEvents = [...(previous.timelineEvents || []), event].slice(-120);
+      const lastSnapshotFrame = previous.lastLiveSnapshotFrame == null
+        ? -LIVE_VIDEO_SNAPSHOT_FRAME_INTERVAL
+        : Number(previous.lastLiveSnapshotFrame);
+      const shouldAddSnapshot = frame - lastSnapshotFrame >= LIVE_VIDEO_SNAPSHOT_FRAME_INTERVAL;
+      const snapshots = shouldAddSnapshot
+        ? [...(previous.snapshots || []), event].slice(-12)
+        : (previous.snapshots || []);
+
+      return {
+        timelineEvents,
+        snapshots,
+        lastLiveEventFrame: frame,
+        ...(shouldAddSnapshot ? { lastLiveSnapshotFrame: frame } : {})
+      };
+    },
+    stopLiveVideoSessionPolling(slotId) {
+      const poller = this.videoSessionPollers[slotId];
+      if (poller) window.clearInterval(poller);
+      if (!(slotId in this.videoSessionPollers)) return;
+      const { [slotId]: _stopped, ...remainingPollers } = this.videoSessionPollers;
+      this.videoSessionPollers = remainingPollers;
+      if (slotId in this.videoSessionPollBusy) {
+        const { [slotId]: _stoppedBusy, ...remainingBusyPolls } = this.videoSessionPollBusy;
+        this.videoSessionPollBusy = remainingBusyPolls;
+      }
+    },
+    async stopLiveVideoSession(slotId) {
+      const slot = this.sourceSlots.find((item) => item.id === slotId);
+      const sessionId = slot?.analysis?.sessionId;
+      this.stopLiveVideoSessionPolling(slotId);
+      if (sessionId) {
+        try {
+          await fetch(`${this.getInferenceApiBase()}/api/video-sessions/${sessionId}`, { method: "DELETE" });
+        } catch (_error) {
+          // The local preview must still stop even if the backend was already disconnected.
+        }
+      }
+      if (slot?.analysis) {
+        slot.analysis = {
+          ...slot.analysis,
+          status: "stopped",
+          sessionId: "",
+          streamPath: "",
+          liveStreamUrl: ""
+        };
+        this.recalculateMetricsFromAnalysis();
+      }
+    },
+    async stopAllLiveVideoSessions() {
+      await Promise.all(this.sourceSlots.map((slot) => this.stopLiveVideoSession(slot.id)));
     },
     async analyzeUrlSource(slot) {
       const sourceUrl = slot.url.trim();
@@ -2194,8 +2467,8 @@ export default {
       formData.append("sourceUrl", sourceUrl);
       formData.append("sourceKind", this.inferUrlSourceKind(sourceUrl) || "stream");
       formData.append("selectedTargets", this.selectedTargets.join(","));
-      formData.append("modelId", this.selectedModelMeta?.id || "rm-img");
-      formData.append("modelFileName", this.selectedModelMeta?.fileName || "rm-img.pt");
+      formData.append("modelId", this.selectedModelMeta?.id || DEFAULT_MODEL_ID);
+      formData.append("modelFileName", this.selectedModelMeta?.fileName || DEFAULT_MODEL_FILE_NAME);
 
       const response = await fetch(`${this.getInferenceApiBase()}/api/detect`, {
         method: "POST",
@@ -2226,7 +2499,7 @@ export default {
       const snapshotCount = Array.isArray(payload.snapshots) ? payload.snapshots.length : 0;
       const elapsedText = payload.elapsedMs ? ` · ${Math.round(payload.elapsedMs)} ms` : "";
       this.appendLog(
-        `${sourceLabel}: ใช้โมเดล <strong>${payload.model?.fileName || "rm-img.pt"}</strong> ตรวจจับจาก URL ได้ <strong>${payload.total}</strong> เป้าหมาย${summaryText ? ` (${summaryText})` : ""}${timelineCount ? ` · timeline ${timelineCount} จุด` : ""}${snapshotCount ? ` · snapshots ${snapshotCount}` : ""}${elapsedText}`
+        `${sourceLabel}: ใช้โมเดล <strong>${payload.model?.fileName || DEFAULT_MODEL_FILE_NAME}</strong> ตรวจจับจาก URL ได้ <strong>${payload.total}</strong> เป้าหมาย${summaryText ? ` (${summaryText})` : ""}${timelineCount ? ` · timeline ${timelineCount} จุด` : ""}${snapshotCount ? ` · snapshots ${snapshotCount}` : ""}${elapsedText}`
       );
       this.appendFilteredDetectionHint(payload, sourceLabel);
     },
@@ -2263,7 +2536,7 @@ export default {
       this.resetSourceSlots();
       this.selectedTargets = [...DEFAULT_TARGET_SELECTION];
       this.timelineFilterTargets = [...DEFAULT_TARGET_SELECTION];
-      this.selectedModel = "rm-img";
+      this.selectedModel = DEFAULT_MODEL_ID;
       this.sidebarCollapsed = false;
       this.logIndex = 0;
       this.syncSidebarState(false);
@@ -2368,7 +2641,22 @@ export default {
     cancelSaveConfirm() {
       this.saveDialog.confirm = false;
     },
-    confirmSaveData() {
+    async loadReports() {
+      try {
+        const response = await fetch(`${this.getInferenceApiBase()}/api/reports`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const payload = await response.json();
+        this.reportRecords = Array.isArray(payload.reports) ? payload.reports : [];
+        this.selectedReportIds = [];
+        this.reportPage = 1;
+        this.ensureSelectedReportVisible();
+      } catch (error) {
+        // Keep the bundled sample records visible if the inference server is not
+        // running yet; new saves still clearly report that persistence failed.
+        console.warn("Unable to load saved reports", error);
+      }
+    },
+    async confirmSaveData() {
       const source = this.saveDialog.source;
       const fileName = this.saveDialog.fileName.trim();
       if (!this.canSaveData || !source || !fileName) return;
@@ -2387,7 +2675,6 @@ export default {
       const metrics = this.buildSavedMetrics(source);
       const media = source.analysis?.media || {};
       const reportRecord = {
-        id: Date.now(),
         name: fileName.replace(/\.[^.]+$/, ""),
         source: source.label || source.src || source.cameraLabel,
         ...this.getSavedFileMeta(source, fileName),
@@ -2396,16 +2683,38 @@ export default {
         resolution: media.resolution || "1920 x 1080",
         fps: media.fps ? String(media.fps) : (source.mediaKind?.startsWith("image") ? "-" : "25"),
         recorder: "admin",
-        tags: [...this.selectedTargets],
+        tags: this.targetTypes.filter((type) => Number(metrics[type] || 0) > 0),
         metrics,
         image: source.analysis?.previewImage || this.fallbackPreviewImage,
         model: this.selectedModelName,
-        modelFile: this.selectedModelMeta?.fileName || "rm-img.pt"
+        modelFile: this.selectedModelMeta?.fileName || DEFAULT_MODEL_FILE_NAME
       };
 
-      this.reportRecords.unshift(reportRecord);
-      this.selectedReportId = reportRecord.id;
-      this.updateReportStats(reportRecord);
+      try {
+        const response = await fetch(`${this.getInferenceApiBase()}/api/reports`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(reportRecord)
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload.report) {
+          throw new Error(payload.error || `HTTP ${response.status}`);
+        }
+
+        const savedReport = payload.report;
+        this.reportRecords.unshift(savedReport);
+        this.selectedReportId = savedReport.id;
+        this.updateReportStats(savedReport);
+        this.reportNotice = `บันทึกข้อมูล ${fileName} เรียบร้อยแล้ว`;
+      } catch (error) {
+        this.reportNotice = "บันทึกรายงานลงฐานข้อมูลไม่สำเร็จ กรุณาตรวจสอบว่า inference server กำลังทำงาน";
+        this.logs.unshift({
+          id: Date.now(),
+          time,
+          message: "<strong>ไม่สามารถบันทึกข้อมูลลงฐานข้อมูลได้</strong>"
+        });
+        return;
+      }
 
       this.logs.unshift({
         id: Date.now(),
@@ -2413,6 +2722,8 @@ export default {
         message: `บันทึกข้อมูล ${source?.cameraLabel || "CAM"} เป็นไฟล์ <strong>${fileName}</strong>`
       });
       this.closeSaveDialog();
+      await this.loadReports();
+      this.setView("report");
     },
     buildSavedMetrics(source) {
       const sourceIndex = Math.max(0, this.monitoringSources.findIndex((item) => item.id === source.id));
@@ -2422,6 +2733,10 @@ export default {
         savedMetrics[type] = this.selectedTargets.includes(type) ? summary[type] : 0;
         return savedMetrics;
       }, {});
+    },
+    reportDetectedTags(record) {
+      const detected = this.targetTypes.filter((type) => Number(record?.metrics?.[type] || 0) > 0);
+      return detected.length ? detected : (record?.tags || []);
     },
     getSavedFileMeta(source, fileName) {
       const sourceText = `${fileName} ${source.label || ""}`.toLowerCase();
@@ -2490,9 +2805,18 @@ export default {
     },
     reportMatchesDateMode(record) {
       if (this.reportDateMode === "all") return true;
-      if (record.id > 100000) return true;
-      if (this.reportDateMode === "today") return record.id <= 2;
-      if (this.reportDateMode === "week") return record.id <= 4;
+      const createdAt = new Date(record.createdAt || "");
+      if (Number.isNaN(createdAt.getTime())) return false;
+      const now = new Date();
+      if (this.reportDateMode === "today") {
+        return createdAt.toDateString() === now.toDateString();
+      }
+      if (this.reportDateMode === "week") {
+        return createdAt >= new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+      }
+      if (this.reportDateMode === "month") {
+        return createdAt.getFullYear() === now.getFullYear() && createdAt.getMonth() === now.getMonth();
+      }
       return true;
     },
     toggleReportSelection(record) {
@@ -2516,6 +2840,7 @@ export default {
     viewReport(record) {
       this.selectReport(record);
       this.reportNotice = `เปิดดูรายละเอียด ${record.name}.${record.ext.toLowerCase()}`;
+      this.$nextTick(() => this.$refs.reportDetailPanel?.scrollIntoView({ behavior: "smooth", block: "nearest" }));
     },
     async exportReport(record, format) {
       await this.exportReports([record], format, record.name);
@@ -3002,9 +3327,6 @@ export default {
           }
 
           context.drawImage(image, 0, 0, width, height);
-          this.drawExportDetectionBox(context, width, height, 0.08, 0.45, 0.28, 0.28, "MV");
-          this.drawExportDetectionBox(context, width, height, 0.58, 0.32, 0.17, 0.2, "AMV");
-          this.drawExportDetectionBox(context, width, height, 0.77, 0.25, 0.15, 0.18, "AMV");
 
           const timeText = this.getExportDurationOverlay(duration);
           context.font = `700 ${Math.max(14, Math.round(width * 0.018))}px Arial, sans-serif`;
@@ -3026,26 +3348,6 @@ export default {
       const value = String(duration || "").trim();
       if (!value || value === "-" || value === "ภาพนิ่ง") return value || "-";
       return `00:00:45 / ${value}`;
-    },
-    drawExportDetectionBox(context, imageWidth, imageHeight, left, top, width, height, label) {
-      const x = Math.round(imageWidth * left);
-      const y = Math.round(imageHeight * top);
-      const boxWidth = Math.round(imageWidth * width);
-      const boxHeight = Math.round(imageHeight * height);
-      const lineWidth = Math.max(3, Math.round(imageWidth * 0.004));
-      const labelSize = Math.max(16, Math.round(imageWidth * 0.022));
-
-      context.save();
-      context.lineWidth = lineWidth;
-      context.strokeStyle = "#5cff80";
-      context.strokeRect(x, y, boxWidth, boxHeight);
-      context.font = `800 ${labelSize}px Arial, sans-serif`;
-      context.textBaseline = "top";
-      context.fillStyle = "#5cff80";
-      context.shadowColor = "rgba(0, 0, 0, 0.9)";
-      context.shadowBlur = Math.max(3, Math.round(imageWidth * 0.004));
-      context.fillText(label, x + lineWidth + 4, y + lineWidth + 3);
-      context.restore();
     },
     resolveExportAssetUrl(path) {
       if (!path) return "";
@@ -3142,15 +3444,32 @@ export default {
     cancelDeleteConfirm() {
       this.deleteDialog.confirm = false;
     },
-    confirmDeleteReport() {
+    async confirmDeleteReport() {
       const record = this.deleteDialog.record;
       if (!record) return;
       const recordsToDelete = this.deleteDialog.records?.length ? this.deleteDialog.records : [record];
-      const deleteIds = new Set(recordsToDelete.map((item) => item.id));
+      const deletionResults = await Promise.all(recordsToDelete.map(async (item) => {
+        try {
+          const response = await fetch(`${this.getInferenceApiBase()}/api/reports/${item.id}`, { method: "DELETE" });
+          return response.ok ? item.id : null;
+        } catch (_error) {
+          return null;
+        }
+      }));
+      const deleteIds = new Set(deletionResults.filter(Boolean));
+      if (!deleteIds.size) {
+        this.reportNotice = "ลบรายงานจากฐานข้อมูลไม่สำเร็จ กรุณาตรวจสอบ inference server";
+        return;
+      }
       this.reportRecords = this.reportRecords.filter((item) => !deleteIds.has(item.id));
       this.selectedReportIds = this.selectedReportIds.filter((id) => !deleteIds.has(id));
       this.reportPage = Math.min(this.reportPage, this.reportTotalPages);
       this.ensureSelectedReportVisible();
+      if (deleteIds.size !== recordsToDelete.length) {
+        this.reportNotice = `ลบได้ ${deleteIds.size} จาก ${recordsToDelete.length} รายการ`;
+        this.closeDeleteDialog();
+        return;
+      }
       if (recordsToDelete.length > 1) {
         this.reportNotice = `ลบ ${recordsToDelete.length} รายการที่เลือกแล้ว`;
         this.closeDeleteDialog();
@@ -3196,7 +3515,7 @@ export default {
             if (this.inferenceServer.status !== "ready") {
               throw new Error("Backend offline");
             }
-            this.appendLog(`backend พร้อม และโหลดโมเดล <strong>${this.selectedModelMeta?.fileName || "rm-img.pt"}</strong> สำเร็จ`);
+            this.appendLog(`backend พร้อม และโหลดโมเดล <strong>${this.selectedModelMeta?.fileName || DEFAULT_MODEL_FILE_NAME}</strong> สำเร็จ`);
             await this.analyzeFileSources();
             this.appendLog(`สรุปผลตรวจจับทั้งหมด <strong>${this.totalCount}</strong> เป้าหมาย`);
           } catch (error) {
@@ -3211,7 +3530,7 @@ export default {
           if (this.inferenceServer.status !== "ready") {
             throw new Error("Backend offline");
           }
-          this.appendLog(`backend พร้อม และโหลดโมเดล <strong>${this.selectedModelMeta?.fileName || "rm-img.pt"}</strong> สำเร็จ`);
+          this.appendLog(`backend พร้อม และโหลดโมเดล <strong>${this.selectedModelMeta?.fileName || DEFAULT_MODEL_FILE_NAME}</strong> สำเร็จ`);
           this.analysisLoopBusy = true;
           await this.analyzeUrlSources();
           this.appendLog(`สรุปผลตรวจจับล่าสุด <strong>${this.totalCount}</strong> เป้าหมาย`);
@@ -3234,8 +3553,9 @@ export default {
         }
       } else {
         window.clearInterval(this.timer);
+        await this.stopAllLiveVideoSessions();
         this.analysisLoopBusy = false;
-        this.appendLog(`หยุดการตรวจจับของโมเดล <strong>${this.selectedModelMeta?.fileName || "rm-img.pt"}</strong>`);
+        this.appendLog(`หยุดการตรวจจับของโมเดล <strong>${this.selectedModelMeta?.fileName || DEFAULT_MODEL_FILE_NAME}</strong>`);
       }
     }
   }
